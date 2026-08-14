@@ -44,6 +44,8 @@ export class Renderer {
   private viewH = VIEW_H
   private lastContainerW = 0
   private lastContainerH = 0
+  private lastScale = 0
+  private shade = 0 // 档位切换遮罩（0~1）
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -102,21 +104,26 @@ export class Renderer {
     const step = Math.max(-maxStep, Math.min(maxStep, diff * dt * 3))
     this.viewW += step
     this.viewH = this.viewW / VIEW_ASPECT
-    // canvas 尺寸随视野变化（整数格）
-    const vw = Math.round(this.viewW)
-    const vh = Math.round(this.viewH)
-    if (this.canvas.width !== vw * CELL || this.canvas.height !== vh * CELL) {
-      const scale = fitScale(this.lastContainerW, this.lastContainerH, vw * CELL, vh * CELL)
-      this.canvas.width = vw * CELL
-      this.canvas.height = vh * CELL
-      this.canvas.style.width = `${vw * CELL * scale}px`
-      this.canvas.style.height = `${vh * CELL * scale}px`
+    // canvas 尺寸连续像素变化（docs/13：消除整数格阶跃震动；浮点视野×16 取整）
+    const pxW = Math.round(this.viewW * CELL)
+    const pxH = Math.round(this.viewH * CELL)
+    if (this.canvas.width !== pxW || this.canvas.height !== pxH) {
+      const scale = fitScale(this.lastContainerW, this.lastContainerH, pxW, pxH)
+      this.canvas.width = pxW
+      this.canvas.height = pxH
+      this.canvas.style.width = `${pxW * scale}px`
+      this.canvas.style.height = `${pxH * scale}px`
+      // scale 档位切换（2↔1）→ 遮罩过渡，避免跳变感
+      if (scale !== this.lastScale) {
+        this.lastScale = scale
+        this.shade = 1
+      }
     }
 
-    // 跟随目标（solo=蛇头，coop=中点）
+    // 跟随目标（solo=蛇头，coop=中点；用连续视野值）
     const follow = (): { x: number; y: number } => {
       const snakes = view.snakes
-      if (snakes.length === 0) return { x: vw * CELL / 2, y: vh * CELL / 2 }
+      if (snakes.length === 0) return { x: this.viewW * CELL / 2, y: this.viewH * CELL / 2 }
       let tx = 0
       let ty = 0
       for (const s of snakes) {
@@ -126,10 +133,10 @@ export class Renderer {
       }
       tx /= snakes.length
       ty /= snakes.length
-      return { x: tx - vw * CELL / 2, y: ty - vh * CELL / 2 }
+      return { x: tx - this.viewW * CELL / 2, y: ty - this.viewH * CELL / 2 }
     }
     const target = follow()
-    const cam = clampCam(target.x, target.y, mapPxW, mapPxH, vw, vh)
+    const cam = clampCam(target.x, target.y, mapPxW, mapPxH, this.viewW, this.viewH)
     // 相机快速同步（dt*10）：缩放期间减少与视野变化的相位差（docs/13 震动修复）
     this.camX += (cam.x - this.camX) * Math.min(1, dt * 10)
     this.camY += (cam.y - this.camY) * Math.min(1, dt * 10)
@@ -200,6 +207,15 @@ export class Renderer {
 
     // ---- 主题边缘光 vignette（屏幕空间，docs/02 3.3）----
     this.drawVignette(ctx, theme)
+
+    // ---- scale 档位切换遮罩（docs/13：0.15s 黑场过渡，掩盖档位跳变）----
+    if (this.shade > 0) {
+      this.shade = Math.max(0, this.shade - dt / 0.15)
+      ctx.fillStyle = "#000000"
+      ctx.globalAlpha = this.shade * 0.55
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+      ctx.globalAlpha = 1
+    }
   }
 
   /** 视野外食物的边缘指示器（箭头 + 食物色点，docs/13） */

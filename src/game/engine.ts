@@ -44,6 +44,7 @@ export class SnakeEngine implements EngineAPI {
 
   private snakes: SnakeState[] = []
   private foods: { x: number; y: number }[] = []
+  private foodCount = FOOD_COUNT // 单人 1 个，双人 3 个（docs/13 第 2 点）
   private scores: Record<PlayerId, number> = { 1: 0, 2: 0 }
   private combos: Record<PlayerId, number> = { 1: 0, 2: 0 }
 
@@ -93,6 +94,7 @@ export class SnakeEngine implements EngineAPI {
     this.scores = { 1: 0, 2: 0 }
     this.combos = { 1: 0, 2: 0 }
     this.foods = []
+    this.foodCount = mode === "coop" ? 3 : 1 // 双人 3 果（docs/13）
     this.obstacleT = 0
     this.elapsed = 0
     this.moveTimer = 0
@@ -299,7 +301,7 @@ export class SnakeEngine implements EngineAPI {
   private respawnFood(): void {
     const map = this.map
     if (!map) return
-    while (this.foods.length < FOOD_COUNT) {
+    while (this.foods.length < this.foodCount) {
       const occupied = new Set<string>()
       for (const s of this.snakes) for (const c of s.body) occupied.add(cellKey(c))
       for (const f of this.foods) occupied.add(cellKey(f))

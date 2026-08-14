@@ -5,8 +5,8 @@
 
 export const CELL = 16 // 格子像素（内部低分辨率；16px 与星露谷 tile 同规格，细节容量最大）
 
-/** 视野尺寸（格）——默认视角扩大到 30×22（docs/13：视角占满屏幕） */
-export const VIEW_W = 30
+/** 视野尺寸（格）——默认 40×22 宽屏矩形（docs/13：scale2 占满屏幕，窗口恒定） */
+export const VIEW_W = 40
 export const VIEW_H = 22
 export const VIEW_PX_W = VIEW_W * CELL
 export const VIEW_PX_H = VIEW_H * CELL
@@ -55,10 +55,10 @@ export function clampCam(
 
 // ---------- 动态缩放（docs/13：双人距离远时拉远视野） ----------
 
-/** 视野格数范围（最小=放大，最大=整图） */
-export const MIN_VIEW_W = 20
+/** 视野格数范围：最小 26（scale2 内放大），最大 48（整图宽，切 scale1 全图） */
+export const MIN_VIEW_W = 26
 export const MAX_VIEW_W = 48 // 整图宽（48×36），两蛇任意位置都可见
-export const VIEW_ASPECT = VIEW_W / VIEW_H // 4:3
+export const VIEW_ASPECT = VIEW_W / VIEW_H // 40:22 宽屏矩形（docs/13 第 3 点）
 
 export interface ViewSize {
   w: number
@@ -67,7 +67,8 @@ export interface ViewSize {
 
 /**
  * 双人动态视野：基于两蛇包围盒计算所需视野。
- * 需要容纳 包围盒 + margin 边距（docs/13：左右视野余量），并保持 4:3 比例；clamp 到 [MIN, MAX]。
+ * 需要容纳 包围盒 + margin 边距，保持宽屏比例；clamp 到 [MIN, MAX]。
+ * 26~40 格区间为 scale2 连续缩放（窗口恒定满屏）；>40 格切 scale1 全图（遮罩过渡）。
  */
 export function calcCoopView(
   boxW: number,

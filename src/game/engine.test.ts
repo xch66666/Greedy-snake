@@ -218,6 +218,17 @@ describe("SnakeEngine", () => {
     expect(hardX - casualX).toBe(4) // docs/03：casual 4 格/秒，hard 8 格/秒
   })
 
+  it("食物数量：单人 1 个，双人 3 个（docs/13 第 2 点）", () => {
+    const s = new SnakeEngine()
+    s.start("test-void", "solo", "normal")
+    expect(s.getView().foods).toHaveLength(1)
+    s.destroy()
+    const c = new SnakeEngine()
+    c.start("test-void", "coop", "normal")
+    expect(c.getView().foods).toHaveLength(3)
+    c.destroy()
+  })
+
   it("gameover 后 restart 可再次游玩", () => {
     const engine = new SnakeEngine()
     engine.start("test-void", "solo", "normal")
