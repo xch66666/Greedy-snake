@@ -36,6 +36,7 @@ export class Renderer {
   private view: EngineView | null = null
   private shake = 0 // 死亡震动
   showGrid = false // 调试网格叠加（F1，docs/06 1.1）
+  private container = { w: 0, h: 0 }
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -44,6 +45,7 @@ export class Renderer {
 
   /** 画布尺寸适配（内部低分辨率，由外部容器决定整数倍） */
   fit(containerW: number, containerH: number): { scale: number; w: number; h: number } {
+    this.container = { w: containerW, h: containerH }
     const map = this.view?.map
     const iw = map ? map.grid.w * CELL : 256
     const ih = map ? map.grid.h * CELL : 192
@@ -63,6 +65,11 @@ export class Renderer {
     const theme = view.theme
     const ctx = this.ctx
     if (!map || !theme) return
+
+    // 地图变化时画布尺寸自动适配（16×12 均为 256×192，防未来地图尺寸不同）
+    if (this.canvas.width !== map.grid.w * CELL) {
+      this.fit(this.container.w, this.container.h)
+    }
 
     // 地图变化时重建静态层与装饰
     const key = `${map.id}-${map.decorSeed}`
@@ -475,12 +482,15 @@ export class Renderer {
     void theme
   }
 
-  /** 蛇头像素位置（复活特效用） */
+  /** 蛇头像素位置（复活/死亡特效用；越界时退回最后一个合法节，防粒子画在界外） */
   headPixel(player: number): { x: number; y: number } | null {
     const s = this.view?.snakes.find((x) => x.player === player)
-    if (!s) return null
+    const map = this.view?.map
+    if (!s || !map) return null
     const h = s.body[0]
-    return { x: h.x * CELL + CELL / 2, y: h.y * CELL + CELL / 2 }
+    const inGrid = h.x >= 0 && h.y >= 0 && h.x < map.grid.w && h.y < map.grid.h
+    const c = inGrid ? h : (s.body[1] ?? h)
+    return { x: c.x * CELL + CELL / 2, y: c.y * CELL + CELL / 2 }
   }
 
   /** 清理（切图/销毁） */

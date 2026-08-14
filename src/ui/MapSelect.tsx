@@ -25,7 +25,6 @@ export function MapSelect(): React.JSX.Element {
   const selectedMapId = useGame((s) => s.selectedMapId)
   const setSelectedMap = useGame((s) => s.setSelectedMap)
   const setScreen = useGame((s) => s.setScreen)
-  const setMode = useGame((s) => s.setMode)
   const thumbRefs = useRef(new Map<string, HTMLCanvasElement>())
   const save = loadSave()
 
@@ -71,7 +70,7 @@ export function MapSelect(): React.JSX.Element {
     <div className="screen" style={{ gap: 16 }}>
       <div style={{ width: "100%", maxWidth: 520, display: "flex", alignItems: "center", gap: 12 }}>
         <button className="px-btn secondary" style={{ padding: "6px 14px", fontSize: 14 }}
-          onClick={() => { audio.click(); setMode("solo"); setScreen("menu") }}>
+          onClick={() => { audio.click(); setScreen("menu") }}>
           ← 返回
         </button>
         <div style={{ flex: 1, textAlign: "center", fontSize: 22 }}>
