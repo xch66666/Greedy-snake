@@ -255,29 +255,36 @@ export function drawObstacleShape(
   const cx = px + CELL / 2
   const cy = py + CELL / 2
   ctx.save()
+  // 满格基底：保证"碰撞格 = 可见格"（docs/10 坑 22：看不见的障碍根治）
+  ctx.fillStyle = color
+  ctx.globalAlpha = 0.5
+  ctx.beginPath()
+  ctx.roundRect(px + 1, py + 1, CELL - 2, CELL - 2, 4)
+  ctx.fill()
+  ctx.globalAlpha = 1
   switch (style) {
     case "vine": {
-      // 藤蔓柱：阴影 + 圆角柱 + 高光条 + 叶片（呼吸由调用方缩放）
+      // 藤蔓柱：满格基底（上层） + 加宽柱体 + 高光条 + 叶片（呼吸由调用方缩放）
       const s = 0.85 + 0.15 * Math.sin(t * 2.5)
       ctx.fillStyle = "rgba(0,0,0,0.4)"
       ctx.beginPath()
-      ctx.roundRect(cx - 3 * u * s + 1, py + 3, 6 * u * s, CELL - 4, 3)
+      ctx.roundRect(cx - 5 * u * s + 1, py + 3, 10 * u * s, CELL - 4, 4)
       ctx.fill()
       ctx.fillStyle = outline
       ctx.beginPath()
-      ctx.roundRect(cx - 3 * u * s, py + 2, 6 * u * s, CELL - 4, 3)
+      ctx.roundRect(cx - 5 * u * s, py + 2, 10 * u * s, CELL - 4, 4)
       ctx.fill()
       ctx.fillStyle = color
       ctx.beginPath()
-      ctx.roundRect(cx - 2.5 * u * s, py + 3, 5 * u * s, CELL - 6, 2.5)
+      ctx.roundRect(cx - 4 * u * s, py + 3, 8 * u * s, CELL - 6, 3)
       ctx.fill()
       // 高光条
       ctx.fillStyle = "rgba(255,255,255,0.22)"
-      ctx.fillRect(cx - 1.8 * u * s, py + 4, 1.2 * u, CELL - 8)
+      ctx.fillRect(cx - 2.8 * u * s, py + 4, 1.6 * u, CELL - 8)
       // 叶片
       ctx.fillStyle = theme.palette.snakeA
       ctx.beginPath()
-      ctx.ellipse(cx + 4 * u * s, py + 5, 2 * u, 1.2 * u, 0.4, 0, Math.PI * 2)
+      ctx.ellipse(cx + 5.5 * u * s, py + 5, 2.4 * u, 1.4 * u, 0.4, 0, Math.PI * 2)
       ctx.fill()
       break
     }

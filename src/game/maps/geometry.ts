@@ -46,14 +46,14 @@ export const geometryMap: MapData = {
       { id: "obelisk-1", kind: "obelisk", origin: { x: 34, y: 4 }, shape: [{ x: 0, y: 0 }, { x: 0, y: 1 }] },
       // 环形门 3×2（中心偏上）
       { id: "ring-0", kind: "ring", origin: { x: 21, y: 15 }, shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }] },
-      // 地形：水晶簇（不规则）+ 虚空坑（环形中空）
+      // 地形：水晶簇（不规则）+ 虚空坑（实心 3×3：黑洞=碰撞，视觉一致，docs/10 坑 22）
       {
         id: "crystal-0", kind: "crystal", origin: { x: 14, y: 8 },
         shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 2, y: 1 }],
       },
       {
         id: "voidpit-0", kind: "voidpit", origin: { x: 8, y: 16 },
-        shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 2, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
+        shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
       },
     ] satisfies ObstacleEntity[]
   ).flatMap((e) => [e, mirrorEntity(e)]),

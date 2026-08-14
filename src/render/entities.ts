@@ -22,7 +22,7 @@ export function entityBounds(e: ObstacleEntity): { x: number; y: number; w: numb
   }
 }
 
-/** 接触阴影（整体底部）+ 底座填充（消灭"看不见的障碍点"，docs/10 坑 20） */
+/** 接触阴影（整体底部）+ 底座填充（消灭"看不见的障碍点"，docs/10 坑 22） */
 export function drawEntityAo(
   ctx: CanvasRenderingContext2D,
   e: ObstacleEntity,
@@ -30,9 +30,9 @@ export function drawEntityAo(
 ): void {
   const b = entityBounds(e)
   const a = theme.texture.ao
-  // 底座填充：覆盖全部碰撞格，保证碰撞区可见（淡化为 0.2，避免"斑驳"）
+  // 底座填充：覆盖全部碰撞格，保证碰撞区可见（0.35 保证深背景下可辨）
   ctx.fillStyle = "#000000"
-  ctx.globalAlpha = 0.2
+  ctx.globalAlpha = 0.35
   ctx.beginPath()
   ctx.roundRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 4)
   ctx.fill()
@@ -453,9 +453,9 @@ function drawRing(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Th
     ctx.fill()
   }
   ctx.globalAlpha = 1
-  // 门内光膜
+  // 门内光膜（明显可见的能量场，docs/10 坑 22：碰撞=可见）
   ctx.fillStyle = theme.palette.accent
-  ctx.globalAlpha = 0.08 + 0.04 * Math.sin(t * 2)
+  ctx.globalAlpha = 0.22 + 0.1 * Math.sin(t * 2)
   ctx.fillRect(4, h * 0.3, w - 8, h * 0.7)
   ctx.globalAlpha = 1
 }
