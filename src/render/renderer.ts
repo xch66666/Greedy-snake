@@ -156,7 +156,7 @@ export class Renderer {
       }
     }
 
-    // 跟随目标（solo=蛇头，coop=中点；用连续视野值）
+    // 跟随目标：蛇头插值位置（solo=蛇头，coop=两蛇插值中点；docs/13 相机平滑）
     const follow = (): { x: number; y: number } => {
       const snakes = view.snakes
       if (snakes.length === 0) return { x: this.viewW * CELL / 2, y: this.viewH * CELL / 2 }
@@ -164,8 +164,17 @@ export class Renderer {
       let ty = 0
       for (const s of snakes) {
         const h = s.body[0]
-        tx += (h.x * CELL + CELL / 2)
-        ty += (h.y * CELL + CELL / 2)
+        const anim = this.snakeAnims.get(s.player)
+        if (anim && anim.startPos[0]) {
+          // 蛇头插值位置（与绘制一致，相机平滑跟随）
+          const e = easeOutQuad(anim.t)
+          const st = anim.startPos[0]
+          tx += (st.x + (h.x - st.x) * e) * CELL + CELL / 2
+          ty += (st.y + (h.y - st.y) * e) * CELL + CELL / 2
+        } else {
+          tx += h.x * CELL + CELL / 2
+          ty += h.y * CELL + CELL / 2
+        }
       }
       tx /= snakes.length
       ty /= snakes.length
@@ -174,9 +183,12 @@ export class Renderer {
     const target = follow()
     // 相机 clamp：允许滚入边界带（负偏移 -3 格，docs/13 修复左/上边界不可见）
     const cam = clampCam(target.x, target.y, mapPxW, mapPxH, this.viewW, this.viewH, -3 * CELL, -3 * CELL)
-    // 相机快速同步（dt*10）：缩放期间减少与视野变化的相位差（docs/13 震动修复）
-    this.camX += (cam.x - this.camX) * Math.min(1, dt * 10)
-    this.camY += (cam.y - this.camY) * Math.min(1, dt * 10)
+    // 相机匀速锁定跟随（docs/13 修复镜头卡顿）：速度 = 引擎当前速度，
+    // 蛇在画面中心保持静止，背景平滑滚动；到位即停（无指数衰减抖动）
+    const camSpeed = view.moveInterval > 0 ? (1 / view.moveInterval) * CELL : 96
+    const maxStep = Math.max(camSpeed, 60) * dt
+    this.camX += Math.max(-maxStep, Math.min(maxStep, cam.x - this.camX))
+    this.camY += Math.max(-maxStep, Math.min(maxStep, cam.y - this.camY))
 
     ctx.save()
     ctx.imageSmoothingEnabled = false
@@ -522,9 +534,10 @@ export class Renderer {
       this.drawPattern(ctx, theme.snakeStyle.pattern, px, py, size, i, len, color, u)
     }
     // 卡通头
-    const headPos = cur[0]
-    const hpx = (headPos.x + (cur[0].x - headPos.x) * ease) * CELL + CELL / 2
-    const hpy = (headPos.y + (cur[0].y - headPos.y) * ease) * CELL + CELL / 2 - lift
+    // 卡通头（位置用插值——与身体同步，docs/13 修复头部跳格/脱节）
+    const start0 = anim.startPos[0] ?? cur[0]
+    const hpx = (start0.x + (cur[0].x - start0.x) * ease) * CELL + CELL / 2
+    const hpy = (start0.y + (cur[0].y - start0.y) * ease) * CELL + CELL / 2 - lift
     this.drawHead(ctx, theme.snakeStyle.head, hpx, hpy, anim.angle, color, outline, t, u)
     ctx.restore()
   }
