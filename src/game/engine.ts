@@ -62,6 +62,9 @@ export class SnakeEngine implements EngineAPI {
   debugNoWall = false
   debugSpeedMul = 1
 
+  // 死亡慢动作（docs/02 3.3 事件反馈链：死亡=碎裂+轻震+0.3s 慢动作）
+  private slowmo = 0
+
   // ---------- EngineAPI ----------
 
   on(handler: (e: GameEvent) => void): () => void {
@@ -199,6 +202,11 @@ export class SnakeEngine implements EngineAPI {
 
   private tickLogic(dt: number): void {
     if (this.state !== "playing") return
+    // 死亡慢动作（docs/02 3.3：0.3s 内逻辑时间 ×0.25）
+    if (this.slowmo > 0) {
+      this.slowmo -= dt
+      dt *= 0.25
+    }
     this.elapsed += dt
     this.obstacleT += dt
 
@@ -309,11 +317,12 @@ export class SnakeEngine implements EngineAPI {
       this.finishGame()
       return
     }
-    // 双人：进入幽灵等待
+    // 双人：进入幽灵等待 + 慢动作反馈
     snake.phase = "ghost"
     snake.phaseTimer = 10
     snake.inputBuffer = []
     this.lastCountdownEmit = 0
+    this.slowmo = 0.3 // docs/02 3.3 死亡慢动作
     this.bus.emit({ type: "death", player: snake.player, reason })
   }
 

@@ -6,6 +6,7 @@ import type { MapData, Theme } from "../game/core/types"
 import { CELL } from "./camera"
 import { mulberry32 } from "../game/core/food"
 import { cyclePhase, easeInOutSine } from "./easing"
+import type { Quality } from "../storage/schema"
 
 interface DecorInstance {
   kind: Theme["bgDecor"][number]["kind"]
@@ -56,6 +57,13 @@ export function parallaxOffset(
   }
 }
 
+/** 画质档位下的装饰绘制数（docs/05 第 5 节：中=减半，低=关闭） */
+export function decorDrawCount(decor: DecorInstance[], quality: Quality): number {
+  if (quality === "low") return 0
+  if (quality === "mid") return Math.ceil(decor.length / 2)
+  return decor.length
+}
+
 /** 绘制全部装饰（前景层，半透明，独立周期） */
 export function drawDecor(
   ctx: CanvasRenderingContext2D,
@@ -65,11 +73,10 @@ export function drawDecor(
   offset: { x: number; y: number },
   w: number,
   h: number,
-  quality: "high" | "mid" | "low",
+  quality: Quality,
 ): void {
-  if (quality === "low") return
-  const skip = quality === "mid" ? 2 : 1 // 中档减半
-  for (let i = 0; i < decor.length; i += skip) {
+  const count = decorDrawCount(decor, quality)
+  for (let i = 0; i < count; i++) {
     const d = decor[i]
     const p = cyclePhase(t, d.period, d.phase)
     const ox = offset.x * LAYER_DEPTH[d.layer] * 3

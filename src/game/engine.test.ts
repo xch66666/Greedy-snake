@@ -199,6 +199,24 @@ describe("SnakeEngine", () => {
     engine.destroy()
   })
 
+  it("难度影响速度：hard 比 casual 1 秒多走 4 格（8 vs 4）", () => {
+    const c = new SnakeEngine()
+    rafCbs.length = 0 // 先清空再 start（start 会注册新回调）
+    c.start("test-void", "solo", "casual")
+    advance(c, 1)
+    const casualX = c.getView().snakes[0].body[0].x
+    c.destroy()
+
+    const h = new SnakeEngine()
+    rafCbs.length = 0
+    h.start("test-void", "solo", "hard")
+    advance(h, 1)
+    const hardX = h.getView().snakes[0].body[0].x
+    h.destroy()
+
+    expect(hardX - casualX).toBe(4) // docs/03：casual 4 格/秒，hard 8 格/秒
+  })
+
   it("gameover 后 restart 可再次游玩", () => {
     const engine = new SnakeEngine()
     engine.start("test-void", "solo", "normal")
