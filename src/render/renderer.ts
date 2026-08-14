@@ -4,7 +4,7 @@
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
 import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
-import { CELL, VIEW_PX_H, VIEW_PX_W, clampCam, fitScale } from "./camera"
+import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, fitScale, type ViewSize } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
 import { drawAo, drawObstacleShape, renderStaticLayer } from "./staticLayer"
@@ -39,14 +39,21 @@ export class Renderer {
   // 相机（docs/11：大地图滚动视野，平滑跟随）
   private camX = 0
   private camY = 0
+  // 动态缩放（docs/13：双人距离远时拉远视野）
+  private viewW = VIEW_W
+  private viewH = VIEW_H
+  private lastContainerW = 0
+  private lastContainerH = 0
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
     this.ctx = canvas.getContext("2d")!
   }
 
-  /** 画布尺寸适配（固定视野 24×18 格，docs/11） */
+  /** 画布尺寸适配（固定视野 24×18 格，docs/11；动态缩放时每帧自适应） */
   fit(containerW: number, containerH: number): { scale: number; w: number; h: number } {
+    this.lastContainerW = containerW
+    this.lastContainerH = containerH
     const scale = fitScale(containerW, containerH, VIEW_PX_W, VIEW_PX_H)
     this.canvas.width = VIEW_PX_W
     this.canvas.height = VIEW_PX_H
@@ -79,12 +86,33 @@ export class Renderer {
 
     const t = view.elapsed
 
-    // ---- 相机平滑跟随（solo=蛇头，coop=两蛇中点；docs/11）----
+    // ---- 相机与动态缩放（docs/11/13）----
     const mapPxW = map.grid.w * CELL
     const mapPxH = map.grid.h * CELL
+    // 目标视野：coop=两蛇包围盒+边距（拉远），solo=默认
+    let targetView: ViewSize = { w: VIEW_W, h: VIEW_H }
+    if (view.mode === "coop" && view.snakes.length === 2) {
+      const a = view.snakes[0].body[0]
+      const b = view.snakes[1].body[0]
+      targetView = calcCoopView(Math.abs(a.x - b.x) + 1, Math.abs(a.y - b.y) + 1)
+    }
+    this.viewW += (targetView.w - this.viewW) * Math.min(1, dt * 3)
+    this.viewH += (targetView.h - this.viewH) * Math.min(1, dt * 3)
+    // canvas 尺寸随视野变化（整数格）
+    const vw = Math.round(this.viewW)
+    const vh = Math.round(this.viewH)
+    if (this.canvas.width !== vw * CELL || this.canvas.height !== vh * CELL) {
+      const scale = fitScale(this.lastContainerW, this.lastContainerH, vw * CELL, vh * CELL)
+      this.canvas.width = vw * CELL
+      this.canvas.height = vh * CELL
+      this.canvas.style.width = `${vw * CELL * scale}px`
+      this.canvas.style.height = `${vh * CELL * scale}px`
+    }
+
+    // 跟随目标（solo=蛇头，coop=中点）
     const follow = (): { x: number; y: number } => {
       const snakes = view.snakes
-      if (snakes.length === 0) return { x: VIEW_PX_W / 2, y: VIEW_PX_H / 2 }
+      if (snakes.length === 0) return { x: vw * CELL / 2, y: vh * CELL / 2 }
       let tx = 0
       let ty = 0
       for (const s of snakes) {
@@ -94,7 +122,7 @@ export class Renderer {
       }
       tx /= snakes.length
       ty /= snakes.length
-      return { x: tx - VIEW_PX_W / 2, y: ty - VIEW_PX_H / 2 }
+      return { x: tx - vw * CELL / 2, y: ty - vh * CELL / 2 }
     }
     const target = follow()
     const cam = clampCam(target.x, target.y, mapPxW, mapPxH)
@@ -160,8 +188,72 @@ export class Renderer {
 
     ctx.restore()
 
-    // ---- 主题边缘光 vignette（屏幕空间，视野尺寸，docs/02 3.3）----
+    // ---- 食物导航指示器（docs/13：视野外食物在边缘显示箭头，屏幕空间）----
+    this.drawFoodIndicators(ctx, theme)
+
+    // ---- 主题边缘光 vignette（屏幕空间，docs/02 3.3）----
     this.drawVignette(ctx, theme)
+  }
+
+  /** 视野外食物的边缘指示器（箭头 + 食物色点，docs/13） */
+  private drawFoodIndicators(
+    ctx: CanvasRenderingContext2D,
+    theme: Theme,
+  ): void {
+    const view = this.view
+    if (!view) return
+    const w = this.canvas.width
+    const h = this.canvas.height
+    const cx = w / 2
+    const cy = h / 2
+    for (const f of view.foods) {
+      const fx = f.x * CELL + CELL / 2 - this.camX
+      const fy = f.y * CELL + CELL / 2 - this.camY
+      const pad = 16
+      // 食物在视野内 → 不需要指示
+      if (fx >= -pad && fx <= w + pad && fy >= -pad && fy <= h + pad) continue
+      const ang = Math.atan2(fy - cy, fx - cx)
+      // 边缘点（画布矩形边缘内缩 12px）
+      const halfW = w / 2 - 12
+      const halfH = h / 2 - 12
+      const t = Math.min(
+        Math.abs(halfW / (Math.cos(ang) || 1e-6)),
+        Math.abs(halfH / (Math.sin(ang) || 1e-6)),
+      )
+      const ex = cx + Math.cos(ang) * t
+      const ey = cy + Math.sin(ang) * t
+      // 指示器：食物色三角箭头 + 中心点（脉动）
+      ctx.save()
+      ctx.translate(ex, ey)
+      ctx.rotate(ang)
+      ctx.fillStyle = theme.palette.food
+      ctx.globalAlpha = 0.85
+      ctx.beginPath()
+      ctx.moveTo(8, 0)
+      ctx.lineTo(-3, -5)
+      ctx.lineTo(-3, 5)
+      ctx.closePath()
+      ctx.fill()
+      ctx.globalAlpha = 1
+      // 描边（深色轮廓保证任何背景下可见）
+      ctx.strokeStyle = theme.palette.outline
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(8, 0)
+      ctx.lineTo(-3, -5)
+      ctx.lineTo(-3, 5)
+      ctx.closePath()
+      ctx.stroke()
+      ctx.restore()
+      // 食物色点（脉动提醒）
+      const g = 0.5 + 0.5 * Math.sin(view.elapsed * 4)
+      ctx.fillStyle = theme.palette.food
+      ctx.globalAlpha = 0.5 + 0.4 * g
+      ctx.beginPath()
+      ctx.arc(ex, ey, 3.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
   }
 
   // ---------- 事件特效（由桥接层订阅 engine 事件调用） ----------
@@ -520,8 +612,8 @@ export class Renderer {
     ctx: CanvasRenderingContext2D,
     theme: Theme,
   ): void {
-    const w = VIEW_PX_W
-    const h = VIEW_PX_H
+    const w = this.canvas.width
+    const h = this.canvas.height
     const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75)
     g.addColorStop(0, "rgba(0,0,0,0)")
     g.addColorStop(1, "rgba(0,0,0,0.35)")

@@ -156,14 +156,17 @@ try {
   if (!modeText) throw new Error("双人模式标签未显示")
   await clickByText("开始游戏")
   await page.waitForSelector("canvas", { timeout: 10000 })
-  await new Promise((r) => setTimeout(r, 1200))
+  await new Promise((r) => setTimeout(r, 2000)) // 等动态缩放平滑到位
   const coopHud = await page.evaluate(() => {
     const t = document.body.innerText
     return t.includes("P1") && t.includes("P2")
   })
   if (!coopHud) throw new Error("双人 HUD 未显示双分数")
+  // 动态缩放验证（docs/13）：双蛇相距远（出生在两端）→ 视野拉远，canvas 宽 > 384
+  const coopCanvasW = await page.evaluate(() => document.querySelector("canvas")?.width ?? 0)
+  if (coopCanvasW <= 384) throw new Error(`双人动态缩放未生效: canvas 宽 ${coopCanvasW}`)
   await page.screenshot({ path: `${SHOTS}/09-coop.png` })
-  console.log("✓ C. 双人模式（HUD 双分数 + 双蛇渲染）")
+  console.log(`✓ C. 双人模式（HUD 双分数 + 动态缩放: canvas ${coopCanvasW}px）`)
   passed++
 
   // ============ D. 帧率检测（headless 保守阈值 30fps） ============

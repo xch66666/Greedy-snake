@@ -45,3 +45,29 @@ export function clampCam(camX: number, camY: number, mapPxW: number, mapPxH: num
     y: Math.min(Math.max(0, camY), maxY),
   }
 }
+
+// ---------- 动态缩放（docs/13：双人距离远时拉远视野） ----------
+
+/** 视野格数范围（最小=放大，最大=缩小） */
+export const MIN_VIEW_W = 20
+export const MAX_VIEW_W = 40
+export const VIEW_ASPECT = VIEW_W / VIEW_H // 4:3
+
+export interface ViewSize {
+  w: number
+  h: number
+}
+
+/**
+ * 双人动态视野：基于两蛇包围盒计算所需视野。
+ * 需要容纳 包围盒 + margin 边距，并保持 4:3 比例；clamp 到 [MIN, MAX]。
+ */
+export function calcCoopView(
+  boxW: number,
+  boxH: number,
+  margin = 5,
+): ViewSize {
+  const needW = Math.max(boxW + margin, (boxH + margin) * VIEW_ASPECT)
+  const w = Math.min(Math.max(needW, MIN_VIEW_W), MAX_VIEW_W)
+  return { w, h: w / VIEW_ASPECT }
+}
