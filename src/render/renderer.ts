@@ -4,7 +4,7 @@
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
 import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
-import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, VIEW_ASPECT, calcCoopView, clampCam, fitScale, type ViewSize } from "./camera"
+import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, fitScale, type ViewSize } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
 import { drawAo, drawObstacleShape, renderStaticLayer } from "./staticLayer"
@@ -46,6 +46,8 @@ export class Renderer {
   private lastContainerH = 0
   private lastScale = 0
   private shade = 0 // 档位切换遮罩（0~1）
+  private vignetteGrad: CanvasGradient | null = null
+  private vignetteKey = ""
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -91,29 +93,26 @@ export class Renderer {
     // ---- 相机与动态缩放（docs/11/13）----
     const mapPxW = map.grid.w * CELL
     const mapPxH = map.grid.h * CELL
-    // 目标视野：coop=两蛇包围盒+边距（拉远），solo=默认
+    // 目标视野：coop=两蛇包围盒→离散档位（40 或全图），solo=默认（docs/13 第 4 版）
     let targetView: ViewSize = { w: VIEW_W, h: VIEW_H }
     if (view.mode === "coop" && view.snakes.length === 2) {
       const a = view.snakes[0].body[0]
       const b = view.snakes[1].body[0]
       targetView = calcCoopView(Math.abs(a.x - b.x) + 1, Math.abs(a.y - b.y) + 1)
     }
-    // 平滑缩放（docs/13 丝滑化）：指数衰减 + 每帧限速；h 由 w 推导保持 4:3 同步
-    const diff = targetView.w - this.viewW
-    const maxStep = 6 * dt // 每帧最多变化 6 格/秒（~4s 从近距到全图）
-    const step = Math.max(-maxStep, Math.min(maxStep, diff * dt * 3))
-    this.viewW += step
-    this.viewH = this.viewW / VIEW_ASPECT
-    // canvas 尺寸连续像素变化（docs/13：消除整数格阶跃震动；浮点视野×16 取整）
-    const pxW = Math.round(this.viewW * CELL)
-    const pxH = Math.round(this.viewH * CELL)
+    // 离散档位直接切换（无连续 lerp；canvas 尺寸只在切换时变 → 消除每帧 resize 性能灾难）
+    this.viewW = targetView.w
+    this.viewH = targetView.h
+    // canvas 尺寸（像素）
+    const pxW = this.viewW * CELL
+    const pxH = this.viewH * CELL
     if (this.canvas.width !== pxW || this.canvas.height !== pxH) {
       const scale = fitScale(this.lastContainerW, this.lastContainerH, pxW, pxH)
       this.canvas.width = pxW
       this.canvas.height = pxH
       this.canvas.style.width = `${pxW * scale}px`
       this.canvas.style.height = `${pxH * scale}px`
-      // scale 档位切换（2↔1）→ 遮罩过渡，避免跳变感
+      // scale 档位切换 → 遮罩过渡，避免跳变感
       if (scale !== this.lastScale) {
         this.lastScale = scale
         this.shade = 1
@@ -637,10 +636,16 @@ export class Renderer {
   ): void {
     const w = this.canvas.width
     const h = this.canvas.height
-    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75)
-    g.addColorStop(0, "rgba(0,0,0,0)")
-    g.addColorStop(1, "rgba(0,0,0,0.35)")
-    ctx.fillStyle = g
+    // 渐变缓存（docs/13 帧率优化：避免每帧创建渐变对象）
+    const key = `${w}x${h}`
+    if (!this.vignetteGrad || this.vignetteKey !== key) {
+      this.vignetteKey = key
+      const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75)
+      g.addColorStop(0, "rgba(0,0,0,0)")
+      g.addColorStop(1, "rgba(0,0,0,0.35)")
+      this.vignetteGrad = g
+    }
+    ctx.fillStyle = this.vignetteGrad
     ctx.fillRect(0, 0, w, h)
     void theme
   }

@@ -53,12 +53,13 @@ export function clampCam(
   }
 }
 
-// ---------- 动态缩放（docs/13：双人距离远时拉远视野） ----------
+// ---------- 动态缩放（docs/13：离散两档，窗口恒定满屏） ----------
 
-/** 视野格数范围：最小 26（scale2 内放大），最大 48（整图宽，切 scale1 全图） */
-export const MIN_VIEW_W = 26
-export const MAX_VIEW_W = 48 // 整图宽（48×36），两蛇任意位置都可见
 export const VIEW_ASPECT = VIEW_W / VIEW_H // 40:22 宽屏矩形（docs/13 第 3 点）
+
+/** 全图档视野（整图 48×36，scale 1） */
+export const FULL_VIEW_W = 48
+export const FULL_VIEW_H = 36
 
 export interface ViewSize {
   w: number
@@ -66,9 +67,9 @@ export interface ViewSize {
 }
 
 /**
- * 双人动态视野：基于两蛇包围盒计算所需视野。
- * 需要容纳 包围盒 + margin 边距，保持宽屏比例；clamp 到 [MIN, MAX]。
- * 26~40 格区间为 scale2 连续缩放（窗口恒定满屏）；>40 格切 scale1 全图（遮罩过渡）。
+ * 双人视野档位（docs/13 第 4 版：离散两档，消除窗口收缩与 canvas 每帧 resize）：
+ * - 包围盒+边距 ≤ 40 格 → 默认档 40×22（scale2 恒定满屏，与单人同尺寸）
+ * - 超出 → 全图档 48×36（scale1，遮罩过渡）
  */
 export function calcCoopView(
   boxW: number,
@@ -76,6 +77,8 @@ export function calcCoopView(
   margin = 8,
 ): ViewSize {
   const needW = Math.max(boxW + margin * 2, (boxH + margin * 2) * VIEW_ASPECT)
-  const w = Math.min(Math.max(needW, MIN_VIEW_W), MAX_VIEW_W)
-  return { w, h: w / VIEW_ASPECT }
+  if (needW > VIEW_W) {
+    return { w: FULL_VIEW_W, h: FULL_VIEW_H }
+  }
+  return { w: VIEW_W, h: VIEW_H }
 }

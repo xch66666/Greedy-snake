@@ -1,44 +1,37 @@
 // ============================================================
-// render/camera.test.ts —— 相机/动态缩放测试（docs/13）
+// render/camera.test.ts —— 相机/视野档位测试（docs/13）
 // ============================================================
 import { describe, expect, it } from "vitest"
-import { MAX_VIEW_W, MIN_VIEW_W, calcCoopView, clampCam, VIEW_ASPECT, VIEW_W } from "./camera"
+import { VIEW_H, VIEW_W, FULL_VIEW_H, FULL_VIEW_W, calcCoopView, clampCam } from "./camera"
 
-describe("calcCoopView", () => {
-  it("双蛇距离近 → 最小视野附近（margin 8 主导）", () => {
+describe("calcCoopView（离散两档，docs/13 第 4 版）", () => {
+  it("双蛇距离近 → 默认档 40×22（与单人同尺寸，满屏）", () => {
     const v = calcCoopView(3, 3)
-    // needW = max(3+16, (3+16)*VIEW_ASPECT)
-    expect(v.w).toBeGreaterThanOrEqual(MIN_VIEW_W)
-    expect(v.w).toBeCloseTo(19 * VIEW_ASPECT, 0)
-    expect(v.h).toBeCloseTo(v.w / VIEW_ASPECT)
+    expect(v).toEqual({ w: VIEW_W, h: VIEW_H })
   })
 
-  it("双蛇距离远 → 视野拉远（缩小）", () => {
-    const v = calcCoopView(30, 10)
-    expect(v.w).toBeGreaterThan(MIN_VIEW_W)
-    expect(v.h).toBeCloseTo(v.w / VIEW_ASPECT)
+  it("双蛇距离中等 → 默认档（窗口恒定满屏，不再缩小）", () => {
+    const v = calcCoopView(20, 3)
+    // needW = max(20+16, (3+16)*1.82=34.6) = 36 ≤ 40 → 默认档
+    expect(v.w).toBe(VIEW_W)
   })
 
-  it("保持 4:3 比例", () => {
-    const v = calcCoopView(12, 20)
-    expect(v.h).toBeCloseTo(v.w / VIEW_ASPECT)
+  it("横向距离主导时按宽度判断", () => {
+    const v = calcCoopView(30, 3)
+    // needW = 30+16=46 > 40 → 全图档
+    expect(v.w).toBe(FULL_VIEW_W)
   })
 
-  it("封顶 MAX_VIEW_W（整图）", () => {
+  it("双蛇拉远超默认档 → 全图档 48×36", () => {
     const v = calcCoopView(45, 30)
-    expect(v.w).toBe(MAX_VIEW_W)
+    expect(v).toEqual({ w: FULL_VIEW_W, h: FULL_VIEW_H })
   })
 
-  it("横向距离主导时按宽度 + margin 双侧（docs/13）", () => {
-    const v = calcCoopView(25, 3)
-    // 需要 25 + 8*2 = 41 > 最小，按宽度
-    expect(v.w).toBe(41)
-  })
-
-  it("margin 保证蛇离视野边缘有距离（docs/13 边距修复）", () => {
-    const v = calcCoopView(10, 10)
-    // needW = max(10+16, (10+16)*4/3) = 34.67（高向主导）
-    expect(v.w).toBeCloseTo(26 * VIEW_ASPECT, 0)
+  it("margin 计入需求宽度", () => {
+    // boxW 24 + 16 = 40 → 恰好默认档（不大于 40）
+    expect(calcCoopView(24, 3).w).toBe(VIEW_W)
+    // boxW 25 + 16 = 41 > 40 → 全图
+    expect(calcCoopView(25, 3).w).toBe(FULL_VIEW_W)
   })
 })
 
@@ -54,14 +47,8 @@ describe("clampCam", () => {
     expect(c.y).toBe(0)
   })
 
-  it("大视野（40 格宽）时 clamp 上限更小（docs/13 修复：按当前视野计算）", () => {
-    const c = clampCam(999, 999, 768, 576, 40, 30)
-    expect(c.x).toBe(768 - 40 * 16)
-    expect(c.y).toBe(576 - 30 * 16)
-  })
-
-  it("视野大于地图时 clamp 到 0（全图视野）", () => {
-    const c = clampCam(100, 100, 768, 576, MAX_VIEW_W, 36)
+  it("全图档视野时 clamp 到 0", () => {
+    const c = clampCam(100, 100, 768, 576, FULL_VIEW_W, FULL_VIEW_H)
     expect(c.x).toBe(0)
     expect(c.y).toBe(0)
   })
