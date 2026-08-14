@@ -29,5 +29,6 @@ export const jungleTheme: Theme = {
   obstacleStyle: "vine",
   snakeStyle: { pattern: "stripe", head: "cat" },
   anim: { eatParticle: "leaf", dur: 300 },
+  foodStyle: "berry", // docs/09：红浆果
   audio: { bgm: { tempo: 110, scale: "C-major" }, ambient: "insects" },
 }

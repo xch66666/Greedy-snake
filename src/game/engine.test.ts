@@ -32,6 +32,7 @@ const testVoidTheme: Theme = {
   obstacleStyle: "prism",
   snakeStyle: { pattern: "block", head: "robot" },
   anim: { eatParticle: "shard", dur: 300 },
+  foodStyle: "energy",
   audio: { bgm: { tempo: 100, scale: "C-major" }, ambient: "pulse" },
 }
 

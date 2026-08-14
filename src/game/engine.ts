@@ -26,6 +26,7 @@ export interface EngineView {
   snakes: ReadonlyArray<Readonly<SnakeState>>
   foods: ReadonlyArray<{ x: number; y: number }>
   obstacleCells: ReadonlySet<string> // 当前动态障碍占格
+  obstacleT: number // 动态障碍时间（渲染连续位置用）
   scores: Record<PlayerId, number>
   combos: Record<PlayerId, number>
   mode: GameMode
@@ -141,6 +142,7 @@ export class SnakeEngine implements EngineAPI {
       snakes: this.snakes,
       foods: this.foods,
       obstacleCells: this.map ? obstacleActiveCells(this.map, this.obstacleT) : new Set<string>(),
+      obstacleT: this.obstacleT,
       scores: this.scores,
       combos: this.combos,
       mode: this.mode,

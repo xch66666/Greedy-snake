@@ -29,5 +29,6 @@ export const dungeonTheme: Theme = {
   obstacleStyle: "stone",
   snakeStyle: { pattern: "scale", head: "dragon" },
   anim: { eatParticle: "ember", dur: 300 },
+  foodStyle: "gold", // docs/09：金块
   audio: { bgm: { tempo: 90, scale: "D-minor" }, ambient: "dungeon" },
 }

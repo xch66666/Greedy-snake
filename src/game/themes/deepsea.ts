@@ -29,5 +29,6 @@ export const deepseaTheme: Theme = {
   obstacleStyle: "coral",
   snakeStyle: { pattern: "gradient", head: "fish" },
   anim: { eatParticle: "bubble", dur: 300 },
+  foodStyle: "pearl", // docs/09：珍珠
   audio: { bgm: { tempo: 70, scale: "E-minor" }, ambient: "abyss" },
 }

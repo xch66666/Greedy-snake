@@ -82,6 +82,7 @@ export interface Theme {
     eatParticle: "leaf" | "ember" | "shard" | "bubble"
     dur: number
   }
+  foodStyle: "berry" | "gold" | "energy" | "pearl" // docs/09 食物造型
   audio: {
     bgm: { tempo: number; scale: string }
     ambient: "insects" | "dungeon" | "pulse" | "abyss"

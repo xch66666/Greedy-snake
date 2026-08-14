@@ -28,5 +28,6 @@ export const geometryTheme: Theme = {
   obstacleStyle: "prism",
   snakeStyle: { pattern: "block", head: "robot" },
   anim: { eatParticle: "shard", dur: 300 },
+  foodStyle: "energy", // docs/09：能量块
   audio: { bgm: { tempo: 130, scale: "A-minor-pentatonic" }, ambient: "pulse" },
 }
