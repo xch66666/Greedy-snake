@@ -1,0 +1,3 @@
+# 统一 LF 换行（docs/08 第 2 节）
+* text=auto eol=lf
+*.md text eol=lf
