@@ -35,6 +35,7 @@ export class Renderer {
 
   private view: EngineView | null = null
   private shake = 0 // 死亡震动
+  showGrid = false // 调试网格叠加（F1，docs/06 1.1）
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -114,6 +115,22 @@ export class Renderer {
 
     // ---- 主题边缘光 vignette（docs/02 3.3）----
     this.drawVignette(ctx, theme, map)
+
+    // ---- 调试网格叠加（F1）----
+    if (this.showGrid && view.map) {
+      ctx.strokeStyle = "rgba(255,255,255,0.25)"
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      for (let x = 0; x <= view.map.grid.w; x++) {
+        ctx.moveTo(x * CELL + 0.5, 0)
+        ctx.lineTo(x * CELL + 0.5, view.map.grid.h * CELL)
+      }
+      for (let y = 0; y <= view.map.grid.h; y++) {
+        ctx.moveTo(0, y * CELL + 0.5)
+        ctx.lineTo(view.map.grid.w * CELL, y * CELL + 0.5)
+      }
+      ctx.stroke()
+    }
 
     ctx.restore()
   }

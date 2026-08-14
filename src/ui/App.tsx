@@ -11,6 +11,7 @@ import { PauseOverlay, GameOverOverlay } from "./Overlays"
 import { GameCanvas, getEngine, applyThemeVars, setBodyBg } from "./GameCanvas"
 import { audio } from "../audio/audio"
 import { getMap } from "../game/maps"
+import { DebugPanel } from "../debug/debugPanel"
 
 export function App(): React.JSX.Element | null {
   const screen = useGame((s) => s.screen)
@@ -52,26 +53,11 @@ export function App(): React.JSX.Element | null {
     setBodyBg("jungle")
   }, [])
 
-  if (screen === "menu") {
-    return (
-      <>
-        <Menu />
-        <SettingsPanel />
-      </>
-    )
-  }
-  if (screen === "mapselect") {
-    return (
-      <>
-        <MapSelect />
-        <SettingsPanel />
-      </>
-    )
-  }
-
-  if (screen === "playing" || screen === "gameover") {
-    return (
-      <>
+  const renderScreen = (): React.JSX.Element | null => {
+    if (screen === "menu") return <Menu />
+    if (screen === "mapselect") return <MapSelect />
+    if (screen === "playing" || screen === "gameover") {
+      return (
         <div className="game-layout">
           <HUD />
           <div style={{ position: "relative", minHeight: 0 }}>
@@ -84,12 +70,18 @@ export function App(): React.JSX.Element | null {
           <PauseOverlay />
           <GameOverOverlay />
         </div>
-        <SettingsPanel />
-      </>
-    )
+      )
+    }
+    return null
   }
 
-  return null
+  return (
+    <>
+      {renderScreen()}
+      <SettingsPanel />
+      <DebugPanel />
+    </>
+  )
 }
 
 export function currentMapId(): string {

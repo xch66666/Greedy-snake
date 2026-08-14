@@ -13,10 +13,16 @@ import type { GameEvent } from "../game/core/types"
 import { loadSave, persistSave } from "../storage/save"
 
 let engineSingleton: SnakeEngine | null = null
+let rendererSingleton: Renderer | null = null
 
 export function getEngine(): SnakeEngine {
   if (!engineSingleton) engineSingleton = new SnakeEngine()
   return engineSingleton
+}
+
+/** F1 调试面板用（docs/06 1.1） */
+export function getRenderer(): Renderer | null {
+  return rendererSingleton
 }
 
 /** 主题 → CSS 变量换肤（docs/02 1.2：换图 = 换整套皮肤） */
@@ -63,6 +69,7 @@ export function GameCanvas(): React.JSX.Element {
     if (!canvas || !wrap) return
     const renderer = new Renderer(canvas)
     rendererRef.current = renderer
+    rendererSingleton = renderer
 
     // 事件 → 渲染特效 / store / 音频
     const unsub = engine.on((e: GameEvent) => {
@@ -150,13 +157,38 @@ export function GameCanvas(): React.JSX.Element {
     // 渲染循环（独立于 React，docs/05 1.2）
     let raf = 0
     let last = performance.now()
+    let fpsWindow: number[] = []
+    let saveCache = loadSave()
+    let saveTicks = 0
     const loop = (ts: number): void => {
       const dt = Math.min(0.1, (ts - last) / 1000)
       last = ts
       const view = engine.getView()
-      const save = loadSave()
-      renderer.render(view, dt, save.settings.quality)
+      renderer.render(view, dt, saveCache.settings.quality)
       raf = requestAnimationFrame(loop)
+
+      // 帧率检测与自动降级（docs/05 第 5 节：连续 30 帧 < 50fps → 降一档）
+      if (saveCache.settings.autoDowngrade) {
+        fpsWindow.push(dt * 1000)
+        if (fpsWindow.length >= 30) {
+          const avg = fpsWindow.reduce((a, b) => a + b, 0) / fpsWindow.length
+          fpsWindow = []
+          if (avg > 20) {
+            const q = saveCache.settings.quality
+            if (q === "high") {
+              saveCache.settings.quality = "mid"
+              persistSave(saveCache)
+              console.warn("[perf] 自动降级 → 中画质（可在设置中关闭）")
+            } else if (q === "mid") {
+              saveCache.settings.quality = "low"
+              persistSave(saveCache)
+              console.warn("[perf] 自动降级 → 低画质")
+            }
+          }
+        }
+      }
+      // 定期刷新存档缓存（设置面板可能已修改）
+      if (++saveTicks % 1800 === 0) saveCache = loadSave() // 每 ~30s
     }
 
     // 画布尺寸适配（整数倍）
@@ -185,6 +217,7 @@ export function GameCanvas(): React.JSX.Element {
       detach()
       unsub()
       renderer.clearFx()
+      rendererSingleton = null
     }
   }, [])
 

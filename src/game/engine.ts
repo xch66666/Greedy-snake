@@ -57,6 +57,11 @@ export class SnakeEngine implements EngineAPI {
   private destroyed = false
   private lastCountdownEmit = 0
 
+  // 调试开关（F1 面板，docs/06 1.1；生产不打包）
+  debugGod = false
+  debugNoWall = false
+  debugSpeedMul = 1
+
   // ---------- EngineAPI ----------
 
   on(handler: (e: GameEvent) => void): () => void {
@@ -134,6 +139,14 @@ export class SnakeEngine implements EngineAPI {
     this.foods.push(cell)
   }
 
+  /** 调试用：瞬移蛇头（F1 面板，docs/06 1.1） */
+  debugTeleportHead(player: PlayerId, cell: { x: number; y: number }): void {
+    const s = this.snakes.find((x) => x.player === player)
+    if (!s || !this.map) return
+    if (cell.x < 0 || cell.y < 0 || cell.x >= this.map.grid.w || cell.y >= this.map.grid.h) return
+    s.body[0] = { ...cell }
+  }
+
   getView(): EngineView {
     return {
       state: this.state,
@@ -179,7 +192,7 @@ export class SnakeEngine implements EngineAPI {
     const preset = DIFFICULTY_PRESETS[this.difficulty]
     const eaten = Math.max(this.combos[1], this.combos[2])
     const steps = Math.floor(eaten / preset.accelPerFood)
-    return Math.min(preset.initialSpeed + steps * preset.accelStep, preset.maxSpeed)
+    return Math.min(preset.initialSpeed + steps * preset.accelStep, preset.maxSpeed) * this.debugSpeedMul
   }
 
   private tickLogic(dt: number): void {
@@ -247,11 +260,16 @@ export class SnakeEngine implements EngineAPI {
 
       if (ghostBefore === "invincible") continue
 
-      // 死亡判定：墙 / 障碍 / 自身
+      // 死亡判定：墙 / 障碍 / 自身（调试开关：无敌/穿墙，docs/06 1.1）
+      if (this.debugGod) continue
       let reason = ""
-      if (isWall(head, map.grid.w, map.grid.h)) reason = "撞墙"
-      else if (hitsAny(map, active, head)) reason = "撞到障碍"
-      else if (hitsSelf(snake, head, willGrow)) reason = "撞到自己"
+      if (isWall(head, map.grid.w, map.grid.h)) {
+        if (!this.debugNoWall) reason = "撞墙"
+      } else if (hitsAny(map, active, head)) {
+        reason = "撞到障碍"
+      } else if (hitsSelf(snake, head, willGrow)) {
+        reason = "撞到自己"
+      }
       if (reason) {
         this.killSnake(snake, reason)
         if (this.state !== "playing") return
