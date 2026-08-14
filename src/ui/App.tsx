@@ -31,16 +31,20 @@ export function App(): React.JSX.Element | null {
         audio.toggleMute()
         return
       }
-      if (st.screen !== "playing") return
-      if (key === "p" || key === "escape") {
-        if (st.hud.paused) {
-          engine.resume()
-          st.updateHud({ paused: false })
-        } else {
-          engine.pause()
+      if (st.screen === "playing") {
+        if (key === "p" || key === "escape") {
+          if (st.hud.paused) {
+            engine.resume()
+            st.updateHud({ paused: false })
+          } else {
+            engine.pause()
+          }
+        } else if (key === "r") {
+          engine.restart()
         }
-      } else if (key === "r") {
-        engine.restart()
+      } else if (st.screen === "gameover" && key === "r") {
+        // 结算界面快速重开（docs/03 第 2 节 R 键）
+        st.setScreen("playing")
       }
     }
     window.addEventListener("keydown", onKey)

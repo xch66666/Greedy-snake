@@ -79,7 +79,7 @@ export function GameCanvas(): React.JSX.Element {
       switch (e.type) {
         case "state":
           if (e.state === "playing") {
-            st.updateHud({ paused: false })
+            st.resetHud() // 重开时清空上一局 HUD 残留
             if (theme) audio.switchTheme(theme)
           } else if (e.state === "paused") {
             st.updateHud({ paused: true })

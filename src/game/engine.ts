@@ -69,6 +69,8 @@ export class SnakeEngine implements EngineAPI {
   }
 
   start(mapId: string, mode: GameMode, difficulty: Difficulty): void {
+    // 防双循环：重启前必须取消旧循环（坑：restart 时旧 loop 仍在 rAF 调度中）
+    cancelAnimationFrame(this.raf)
     const map = getMap(mapId)
     if (!map) throw new Error(`未知地图: ${mapId}`)
     const theme = getTheme(map.themeId)

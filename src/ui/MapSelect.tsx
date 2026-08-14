@@ -38,6 +38,12 @@ export function MapSelect(): React.JSX.Element {
     }
   }, [selectedMapId])
 
+  // 难度默认取设置存档值（docs/07 3：默认取设置弹窗中的难度值）
+  useEffect(() => {
+    setDifficulty(loadSave().settings.difficulty)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // 程序化缩略图（真实地图数据小样，docs/07 3）
   useEffect(() => {
     for (const map of MAPS) {

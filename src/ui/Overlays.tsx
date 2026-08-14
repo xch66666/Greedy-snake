@@ -54,7 +54,8 @@ export function GameOverOverlay(): React.JSX.Element | null {
 
   const replay = (): void => {
     audio.click()
-    getEngine().restart()
+    // 切回 playing 由 GameCanvas 的 screen effect 统一 start（避免双 start）
+    setScreen("playing")
   }
   const toMapSelect = (): void => {
     audio.click()

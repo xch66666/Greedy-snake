@@ -185,4 +185,29 @@ describe("SnakeEngine", () => {
     expect(engine.getView().scores[1]).toBe(scoreBefore) // 分数重置
     engine.destroy()
   })
+
+  it("restart 无双循环：1 秒内蛇只走约 6 格（normal）", () => {
+    const engine = new SnakeEngine()
+    engine.start("test-void", "solo", "normal")
+    engine.restart() // 重启时旧循环若未取消会双倍速
+    rafCbs.length = 0
+    advance(engine, 1)
+    const head = engine.getView().snakes[0].body[0]
+    // 6 格/秒 → 1 秒后 x≈8（2+6）；双循环会 x≈14 撞墙前
+    expect(head.x).toBeGreaterThanOrEqual(2)
+    expect(head.x).toBeLessThan(11)
+    engine.destroy()
+  })
+
+  it("gameover 后 restart 可再次游玩", () => {
+    const engine = new SnakeEngine()
+    engine.start("test-void", "solo", "normal")
+    engine.setDir(1, "up")
+    advance(engine, 6) // 撞墙 → gameover
+    expect(engine.getView().state).toBe("gameover")
+    engine.restart()
+    expect(engine.getView().state).toBe("playing")
+    expect(engine.getView().snakes[0].body[0]).toEqual({ x: 2, y: 2 }) // 回出生点
+    engine.destroy()
+  })
 })
