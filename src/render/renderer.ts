@@ -4,7 +4,7 @@
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
 import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
-import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, fitScale, type ViewSize } from "./camera"
+import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, VIEW_ASPECT, calcCoopView, clampCam, fitScale, type ViewSize } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
 import { drawAo, drawObstacleShape, renderStaticLayer } from "./staticLayer"
@@ -96,8 +96,12 @@ export class Renderer {
       const b = view.snakes[1].body[0]
       targetView = calcCoopView(Math.abs(a.x - b.x) + 1, Math.abs(a.y - b.y) + 1)
     }
-    this.viewW += (targetView.w - this.viewW) * Math.min(1, dt * 3)
-    this.viewH += (targetView.h - this.viewH) * Math.min(1, dt * 3)
+    // 平滑缩放（docs/13 丝滑化）：指数衰减 + 每帧限速；h 由 w 推导保持 4:3 同步
+    const diff = targetView.w - this.viewW
+    const maxStep = 4 * dt // 每帧最多变化 4 格/秒
+    const step = Math.max(-maxStep, Math.min(maxStep, diff * dt * 3))
+    this.viewW += step
+    this.viewH = this.viewW / VIEW_ASPECT
     // canvas 尺寸随视野变化（整数格）
     const vw = Math.round(this.viewW)
     const vh = Math.round(this.viewH)
@@ -125,7 +129,7 @@ export class Renderer {
       return { x: tx - vw * CELL / 2, y: ty - vh * CELL / 2 }
     }
     const target = follow()
-    const cam = clampCam(target.x, target.y, mapPxW, mapPxH)
+    const cam = clampCam(target.x, target.y, mapPxW, mapPxH, vw, vh)
     this.camX += (cam.x - this.camX) * Math.min(1, dt * 6)
     this.camY += (cam.y - this.camY) * Math.min(1, dt * 6)
 

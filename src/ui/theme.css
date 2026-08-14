@@ -214,6 +214,11 @@ button {
   min-height: 0;
 }
 
+/* 画布显示尺寸平滑过渡（docs/13 缩放丝滑化：整数倍档位切换时 0.25s 缓动） */
+.game-canvas-wrap canvas {
+  transition: width 0.25s ease, height 0.25s ease;
+}
+
 .game-hint {
   text-align: center;
   font-size: 12px;
