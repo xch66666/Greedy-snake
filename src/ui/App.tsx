@@ -67,9 +67,9 @@ export function App(): React.JSX.Element | null {
           <div style={{ position: "relative", minHeight: 0 }}>
             <GameCanvas />
             <ReviveBanner />
-          </div>
-          <div className="game-hint">
-            P1: WASD · P2: 方向键 · P/Esc: 暂停 · R: 重开 · M: 静音
+            <div className="game-hint">
+              P1: WASD · P2: 方向键 · P/Esc: 暂停 · R: 重开 · M: 静音
+            </div>
           </div>
           <PauseOverlay />
           <GameOverOverlay />

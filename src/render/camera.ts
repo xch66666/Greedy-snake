@@ -5,9 +5,9 @@
 
 export const CELL = 16 // 格子像素（内部低分辨率；16px 与星露谷 tile 同规格，细节容量最大）
 
-/** 视野尺寸（格）——地图扩大 2 倍后滚动视野，docs/11 */
-export const VIEW_W = 24
-export const VIEW_H = 18
+/** 视野尺寸（格）——默认视角扩大到 30×22（docs/13：视角占满屏幕） */
+export const VIEW_W = 30
+export const VIEW_H = 22
 export const VIEW_PX_W = VIEW_W * CELL
 export const VIEW_PX_H = VIEW_H * CELL
 

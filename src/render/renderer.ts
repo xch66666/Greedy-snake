@@ -130,8 +130,9 @@ export class Renderer {
     }
     const target = follow()
     const cam = clampCam(target.x, target.y, mapPxW, mapPxH, vw, vh)
-    this.camX += (cam.x - this.camX) * Math.min(1, dt * 6)
-    this.camY += (cam.y - this.camY) * Math.min(1, dt * 6)
+    // 相机快速同步（dt*10）：缩放期间减少与视野变化的相位差（docs/13 震动修复）
+    this.camX += (cam.x - this.camX) * Math.min(1, dt * 10)
+    this.camY += (cam.y - this.camY) * Math.min(1, dt * 10)
 
     ctx.save()
     ctx.imageSmoothingEnabled = false
@@ -140,10 +141,12 @@ export class Renderer {
     // 静态层（全图，GPU 裁切视野）
     ctx.drawImage(this.staticLayer!, 0, 0)
 
-    // 震动（docs/02 3.3 死亡反馈）
+    // 震动（docs/02 3.3 死亡反馈；衰减加快，避免残留到复活，docs/13 修复）
     if (this.shake > 0) {
-      this.shake = Math.max(0, this.shake - dt)
-      ctx.translate((Math.random() - 0.5) * this.shake * 2, (Math.random() - 0.5) * this.shake * 2)
+      this.shake = Math.max(0, this.shake - dt * 10)
+      if (this.shake > 0) {
+        ctx.translate((Math.random() - 0.5) * this.shake * 2, (Math.random() - 0.5) * this.shake * 2)
+      }
     }
 
     // ---- 动态障碍（连续位置）----
@@ -268,7 +271,7 @@ export class Renderer {
 
   spawnDeath(px: number, py: number, theme: Theme): void {
     this.particles.spawnBurst(px, py, [theme.palette.snakeA, theme.palette.snakeB, theme.palette.food])
-    this.shake = 6
+    this.shake = 4 // 幅度适中（docs/13：原 6 过大）
   }
 
   spawnRevive(px: number, py: number, theme: Theme): void {

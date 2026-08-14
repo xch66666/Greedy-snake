@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest"
 import { MAX_VIEW_W, MIN_VIEW_W, calcCoopView, clampCam, VIEW_ASPECT, VIEW_W } from "./camera"
 
 describe("calcCoopView", () => {
-  it("双蛇距离近 → 最小视野附近（margin 8 主导：25.3 格）", () => {
+  it("双蛇距离近 → 最小视野附近（margin 8 主导）", () => {
     const v = calcCoopView(3, 3)
-    // needW = max(3+16, (3+16)*4/3) = 25.33
+    // needW = max(3+16, (3+16)*VIEW_ASPECT)
     expect(v.w).toBeGreaterThanOrEqual(MIN_VIEW_W)
-    expect(v.w).toBeCloseTo(25.33, 0)
+    expect(v.w).toBeCloseTo(19 * VIEW_ASPECT, 0)
     expect(v.h).toBeCloseTo(v.w / VIEW_ASPECT)
   })
 
