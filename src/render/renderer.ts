@@ -98,7 +98,7 @@ export class Renderer {
     }
     // 平滑缩放（docs/13 丝滑化）：指数衰减 + 每帧限速；h 由 w 推导保持 4:3 同步
     const diff = targetView.w - this.viewW
-    const maxStep = 4 * dt // 每帧最多变化 4 格/秒
+    const maxStep = 6 * dt // 每帧最多变化 6 格/秒（~4s 从近距到全图）
     const step = Math.max(-maxStep, Math.min(maxStep, diff * dt * 3))
     this.viewW += step
     this.viewH = this.viewW / VIEW_ASPECT
