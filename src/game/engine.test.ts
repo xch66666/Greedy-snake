@@ -69,6 +69,11 @@ function advance(engine: SnakeEngine, seconds: number): void {
   void engine
 }
 
+/** 越过 3 秒开局倒计时（docs/13 第 2 点） */
+function skipCountdown(engine: SnakeEngine): void {
+  advance(engine, 3.5)
+}
+
 /**
  * 推进时间并让 P2 绕圈存活（每 1.0s 逻辑时间顺时针转向 90°）。
  * 空地图 16×12：left 6 格 → up 6 格 → right 6 格 → down 6 格，循环不撞墙。
@@ -110,6 +115,7 @@ describe("SnakeEngine", () => {
   it("吃食物：分数增加 + 连击 + 事件", () => {
     const engine = new SnakeEngine()
     engine.start("jungle", "solo", "normal")
+    skipCountdown(engine) // 越过 3 秒倒计时
     // 蛇在 (2,2) 朝右，把食物放到前方
     const view = engine.getView()
     const head = view.snakes[0].body[0]
@@ -144,10 +150,10 @@ describe("SnakeEngine", () => {
     engine.on((e) => events.push(e))
     const circle = makeP2Circle()
     engine.setDir(1, "up")
-    circle(engine, 2) // P1 撞墙 → ghost，P2 绕圈存活
+    circle(engine, 4) // 3s 倒计时 + P1 撞墙 → ghost，P2 绕圈存活
     expect(engine.getView().snakes[0].phase).toBe("ghost")
     expect(engine.getView().state).toBe("playing")
-    circle(engine, 9.9) // 复活于 ~10.5s，保护期到 ~12.5s；断言落在保护期内
+    circle(engine, 9.6) // 复活于 ~13.5s（3.5 撞墙 + 10s），保护期 15.5s 内断言
     const s1 = engine.getView().snakes[0]
     expect(s1.phase).toBe("invincible")
     expect(events.some((e) => e.type === "revive" && e.player === 1)).toBe(true)
@@ -162,12 +168,12 @@ describe("SnakeEngine", () => {
     engine.on((e) => events.push(e))
     const circle = makeP2Circle()
     engine.setDir(1, "up")
-    circle(engine, 2) // P1 ghost，P2 绕圈中（此时 dir=up）
+    circle(engine, 4) // P1 于 ~3.5s 撞墙 ghost，P2 绕圈中（此时 dir=up）
     expect(engine.getView().snakes[0].phase).toBe("ghost")
     expect(engine.getView().state).toBe("playing")
-    // P2 向左撞墙（dir=up → left 合法）
+    // P2 向左走 45 格撞左墙（约 7.5s）→ 双死
     engine.setDir(2, "left")
-    advance(engine, 3)
+    advance(engine, 8)
     expect(engine.getView().state).toBe("gameover")
     expect(events.some((e) => e.type === "gameover")).toBe(true)
     engine.destroy()
@@ -204,18 +210,23 @@ describe("SnakeEngine", () => {
     const c = new SnakeEngine()
     rafCbs.length = 0 // 先清空再 start（start 会注册新回调）
     c.start("test-void", "solo", "casual")
+    skipCountdown(c)
+    const c0 = c.getView().snakes[0].body[0].x
     advance(c, 1)
-    const casualX = c.getView().snakes[0].body[0].x
+    const casualMove = c.getView().snakes[0].body[0].x - c0
     c.destroy()
 
     const h = new SnakeEngine()
     rafCbs.length = 0
     h.start("test-void", "solo", "hard")
+    skipCountdown(h)
+    const h0 = h.getView().snakes[0].body[0].x
     advance(h, 1)
-    const hardX = h.getView().snakes[0].body[0].x
+    const hardMove = h.getView().snakes[0].body[0].x - h0
     h.destroy()
 
-    expect(hardX - casualX).toBe(4) // docs/03：casual 4 格/秒，hard 8 格/秒
+    expect(casualMove).toBe(4) // docs/03：casual 4 格/秒
+    expect(hardMove).toBe(8) // hard 8 格/秒
   })
 
   it("食物数量：单人 1 个，双人 3 个（docs/13 第 2 点）", () => {

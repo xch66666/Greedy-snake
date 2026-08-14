@@ -27,6 +27,8 @@ export interface EngineView {
   foods: ReadonlyArray<{ x: number; y: number }>
   obstacleCells: ReadonlySet<string> // 当前动态障碍占格
   obstacleT: number // 动态障碍时间（渲染连续位置用）
+  /** 开局倒计时剩余秒（0 = 已开始，docs/13 第 2 点） */
+  countdown: number
   scores: Record<PlayerId, number>
   combos: Record<PlayerId, number>
   mode: GameMode
@@ -57,6 +59,7 @@ export class SnakeEngine implements EngineAPI {
   private rng = mulberry32(1)
   private destroyed = false
   private lastCountdownEmit = 0
+  private startCountdown = 0 // 开局 3 秒准备（docs/13 第 2 点）
 
   // 调试开关（F1 面板，docs/06 1.1；生产不打包）
   debugGod = false
@@ -101,6 +104,7 @@ export class SnakeEngine implements EngineAPI {
     this.acc = 0
     this.lastTs = 0
     this.destroyed = false
+    this.startCountdown = 3 // 3 秒准备时间（docs/13 第 2 点）
 
     this.respawnFood()
     this.setState("playing")
@@ -163,6 +167,7 @@ export class SnakeEngine implements EngineAPI {
       foods: this.foods,
       obstacleCells: this.map ? obstacleActiveCells(this.map, this.obstacleT) : new Set<string>(),
       obstacleT: this.obstacleT,
+      countdown: this.startCountdown,
       scores: this.scores,
       combos: this.combos,
       mode: this.mode,
@@ -204,6 +209,13 @@ export class SnakeEngine implements EngineAPI {
 
   private tickLogic(dt: number): void {
     if (this.state !== "playing") return
+    // 开局 3 秒准备：蛇锁定不动（docs/13 第 2 点），障碍/装饰时间继续
+    if (this.startCountdown > 0) {
+      this.startCountdown = Math.max(0, this.startCountdown - dt)
+      this.elapsed += dt
+      this.obstacleT += dt
+      return
+    }
     // 死亡慢动作（docs/02 3.3：0.3s 内逻辑时间 ×0.25）
     if (this.slowmo > 0) {
       this.slowmo -= dt
@@ -248,14 +260,15 @@ export class SnakeEngine implements EngineAPI {
     const active = obstacleActiveCells(map, this.obstacleT)
 
     for (const snake of this.snakes) {
-      if (snake.phase === "ghost") continue // 幽灵不可操作不移动
-      const ghostBefore = snake.phase
+      // 幽灵/复活保护期原地不动（docs/03 5.3 修订：保护期原地无敌闪烁，防"活了就死"）
+      if (snake.phase === "ghost") continue
+      if (snake.phase === "invincible") {
+        // 保护期倒计时（updateRevive 已处理），不移动不判定
+        continue
+      }
       const willGrow = snake.growPending > 0
       stepSnake(snake)
       const head = snake.body[0]
-
-      // 保护期：不吃食物、不受伤害、可穿障碍（docs/03 5.3）
-      if (snake.phase === "invincible") continue
 
       // 双人：两蛇互穿不互伤（docs/03 5.1）
       const hitsOther = this.snakes.some(
@@ -269,8 +282,6 @@ export class SnakeEngine implements EngineAPI {
         this.eatFood(snake)
         this.respawnFood()
       }
-
-      if (ghostBefore === "invincible") continue
 
       // 死亡判定：墙 / 障碍 / 自身（调试开关：无敌/穿墙，docs/06 1.1）
       if (this.debugGod) continue

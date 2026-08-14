@@ -3,7 +3,7 @@
 // 每帧：静态层 → 动态障碍 → 食物 → 蛇（插值）→ 装饰 → 粒子 → 边缘光
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
-import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
+import type { Cell, Direction, MapData, SnakeState, Theme } from "../game/core/types"
 import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, screenScale, type ViewSize } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
@@ -48,6 +48,12 @@ export class Renderer {
   private shade = 0 // 档位切换遮罩（0~1）
   private vignetteGrad: CanvasGradient | null = null
   private vignetteKey = ""
+  // 档位过渡（docs/13 第 5 点：0.35s 平滑插值 + 遮罩，不再突兀切换）
+  private transFromW = VIEW_W
+  private transToW = VIEW_W
+  private transFromH = VIEW_H
+  private transToH = VIEW_H
+  private transT = 1 // 1 = 无过渡
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -106,9 +112,26 @@ export class Renderer {
       const b = view.snakes[1].body[0]
       targetView = calcCoopView(Math.abs(a.x - b.x) + 1, Math.abs(a.y - b.y) + 1)
     }
-    // 离散档位直接切换（无连续 lerp；canvas 尺寸只在切换时变 → 消除每帧 resize 性能灾难）
-    this.viewW = targetView.w
-    this.viewH = targetView.h
+    // 档位切换：启动 0.35s 平滑过渡（docs/13 第 5 点）
+    if (targetView.w !== this.transToW || targetView.h !== this.transToH) {
+      this.transFromW = this.viewW
+      this.transFromH = this.viewH
+      this.transToW = targetView.w
+      this.transToH = targetView.h
+      this.transT = 0
+      this.shade = 1
+    }
+    if (this.transT < 1) {
+      this.transT = Math.min(1, this.transT + dt / 0.35)
+      const e = this.transT < 0.5
+        ? 2 * this.transT * this.transT
+        : 1 - Math.pow(-2 * this.transT + 2, 2) / 2 // easeInOutQuad
+      this.viewW = this.transFromW + (this.transToW - this.transFromW) * e
+      this.viewH = this.transFromH + (this.transToH - this.transFromH) * e
+    } else {
+      this.viewW = this.transToW
+      this.viewH = this.transToH
+    }
     // canvas 尺寸（像素）
     const pxW = this.viewW * CELL
     const pxH = this.viewH * CELL
@@ -212,20 +235,122 @@ export class Renderer {
 
     ctx.restore()
 
+    // ---- 地图边界线（docs/13 第 1 点：视野贴边时显示边界）----
+    this.drawMapBorder(ctx, theme, map)
+
     // ---- 食物导航指示器（docs/13：视野外食物在边缘显示箭头，屏幕空间）----
     this.drawFoodIndicators(ctx, theme)
+
+    // ---- 食物方位常驻条（docs/13 第 3 点：单人/双人都显示最近食物距离方向）----
+    this.drawFoodBar(ctx, theme, view)
+
+    // ---- 开局倒计时（docs/13 第 2 点）----
+    if (view.countdown > 0) {
+      this.drawCountdown(ctx, view.countdown)
+    }
 
     // ---- 主题边缘光 vignette（屏幕空间，docs/02 3.3）----
     this.drawVignette(ctx, theme)
 
-    // ---- scale 档位切换遮罩（docs/13：0.15s 黑场过渡，掩盖档位跳变）----
+    // ---- scale 档位切换遮罩（docs/13：0.35s 黑场过渡，掩盖档位跳变）----
     if (this.shade > 0) {
-      this.shade = Math.max(0, this.shade - dt / 0.15)
+      this.shade = Math.max(0, this.shade - dt / 0.35)
       ctx.fillStyle = "#000000"
       ctx.globalAlpha = this.shade * 0.55
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
       ctx.globalAlpha = 1
     }
+  }
+
+  /** 地图边界线：视野贴地图边缘时在对应视野边缘画亮线（docs/13 第 1 点） */
+  private drawMapBorder(
+    ctx: CanvasRenderingContext2D,
+    theme: Theme,
+    map: MapData,
+  ): void {
+    const vw = this.canvas.width
+    const vh = this.canvas.height
+    const mapPxW = map.grid.w * CELL
+    const mapPxH = map.grid.h * CELL
+    ctx.strokeStyle = theme.palette.accent
+    ctx.lineWidth = 3
+    ctx.globalAlpha = 0.9
+    ctx.beginPath()
+    if (this.camX <= 1) { ctx.moveTo(1.5, 0); ctx.lineTo(1.5, vh) }
+    if (this.camX + vw >= mapPxW - 1) { ctx.moveTo(vw - 1.5, 0); ctx.lineTo(vw - 1.5, vh) }
+    if (this.camY <= 1) { ctx.moveTo(0, 1.5); ctx.lineTo(vw, 1.5) }
+    if (this.camY + vh >= mapPxH - 1) { ctx.moveTo(0, vh - 1.5); ctx.lineTo(vw, vh - 1.5) }
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  /** 食物方位常驻条：左上角显示最近食物距离 + 方向（docs/13 第 3 点） */
+  private drawFoodBar(
+    ctx: CanvasRenderingContext2D,
+    theme: Theme,
+    view: EngineView,
+  ): void {
+    if (view.foods.length === 0) return
+    const head = view.snakes[0]?.body[0]
+    if (!head) return
+    let best = view.foods[0]
+    let bestD = Infinity
+    for (const f of view.foods) {
+      const d = Math.abs(f.x - head.x) + Math.abs(f.y - head.y)
+      if (d < bestD) { bestD = d; best = f }
+    }
+    const x = 10
+    const y = 34
+    // 食物小圆
+    ctx.fillStyle = theme.palette.food
+    ctx.beginPath()
+    ctx.arc(x + 5, y, 4, 0, Math.PI * 2)
+    ctx.fill()
+    // 距离文本
+    ctx.font = '12px "Fusion Pixel 12px Proportional", monospace'
+    ctx.textBaseline = "middle"
+    ctx.fillStyle = theme.palette.uiText
+    ctx.globalAlpha = 0.9
+    ctx.fillText(`${bestD} 格`, x + 12, y + 1)
+    // 方向箭头（指向食物）
+    const ang = Math.atan2(best.y - head.y, best.x - head.x)
+    ctx.save()
+    ctx.translate(x + 58, y + 1)
+    ctx.rotate(ang)
+    ctx.fillStyle = theme.palette.food
+    ctx.beginPath()
+    ctx.moveTo(6, 0)
+    ctx.lineTo(-2, -4)
+    ctx.lineTo(-2, 4)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+    ctx.globalAlpha = 1
+  }
+
+  /** 开局倒计时大数字（docs/13 第 2 点） */
+  private drawCountdown(ctx: CanvasRenderingContext2D, countdown: number): void {
+    const n = Math.ceil(countdown)
+    const w = this.canvas.width
+    const h = this.canvas.height
+    ctx.save()
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.font = '32px "Fusion Pixel 12px Proportional", monospace'
+    // 深色底圆
+    ctx.fillStyle = "rgba(0,0,0,0.45)"
+    ctx.beginPath()
+    ctx.arc(w / 2, h / 2 - 8, 30, 0, Math.PI * 2)
+    ctx.fill()
+    // 数字（白字 + 深描边）
+    ctx.fillStyle = "#000000"
+    ctx.fillText(String(n), w / 2 + 1.5, h / 2 - 5.5)
+    ctx.fillText(String(n), w / 2 - 1.5, h / 2 - 5.5)
+    ctx.fillText(String(n), w / 2, h / 2 - 8 + 1.5)
+    ctx.fillText(String(n), w / 2, h / 2 - 8 - 1.5)
+    ctx.fillStyle = "#ffffff"
+    ctx.fillText(String(n), w / 2, h / 2 - 8)
+    ctx.restore()
   }
 
   /** 视野外食物的边缘指示器（箭头 + 食物色点，docs/13） */

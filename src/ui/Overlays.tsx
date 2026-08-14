@@ -25,6 +25,7 @@ export function PauseOverlay(): React.JSX.Element | null {
   }
   const quit = (): void => {
     audio.click()
+    updateHud({ paused: false }) // 重置暂停态，防下一局自动暂停（docs/13 修复）
     setScreen("mapselect")
   }
 
