@@ -28,14 +28,14 @@ export function HUD(): React.JSX.Element {
       {mode === "coop" ? (
         <>
           <div>{scoreBlock(1, "left")}</div>
-          <div className="center" style={{ fontSize: 14 }}>{centerText}</div>
+          <div className="center" style={{ fontSize: 12 }}>{centerText}</div>
           <div>{scoreBlock(2, "right")}</div>
         </>
       ) : (
         <>
           <div>{scoreBlock(1, "left")}</div>
-          <div className="center" style={{ fontSize: 14 }}>{centerText}</div>
-          <div className="right" style={{ fontSize: 13, opacity: 0.7 }}>P:暂停 · R:重开 · M:静音</div>
+          <div className="center" style={{ fontSize: 12 }}>{centerText}</div>
+          <div className="right" style={{ fontSize: 12, opacity: 0.7 }}>P:暂停 · R:重开 · M:静音</div>
         </>
       )}
     </div>

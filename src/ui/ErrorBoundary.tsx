@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="overlay">
           <div className="modal px-card" style={{ alignItems: "center", gap: 12 }}>
             <div className="px-title" style={{ fontSize: 24 }}>出错了</div>
-            <div style={{ fontSize: 13, opacity: 0.75, textAlign: "center", wordBreak: "break-all" }}>
+            <div style={{ fontSize: 12, opacity: 0.75, textAlign: "center", wordBreak: "break-all" }}>
               {this.state.error.message}
             </div>
             <div style={{ display: "flex", gap: 12 }}>

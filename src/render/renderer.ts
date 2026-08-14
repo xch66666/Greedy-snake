@@ -209,29 +209,35 @@ export class Renderer {
     }
 
     const len = cur.length
+    const u = CELL / 16 // 12px 格缩放因子
+    const size = CELL - 2 // 蛇身节尺寸（留 1px 格间距更精细）
     ctx.save()
     ctx.globalAlpha = alpha
     for (let i = len - 1; i >= 0; i--) {
       const start = anim.prevBody[i] ?? cur[i]
       const px = (start.x + (cur[i].x - start.x) * ease) * CELL + CELL / 2
       const py = (start.y + (cur[i].y - start.y) * ease) * CELL + CELL / 2 - (i === 0 ? lift : 0)
-      const size = 14
       ctx.fillStyle = outline
       ctx.beginPath()
-      ctx.roundRect(px - size / 2 + 2, py - size / 2 + 2, size, size, 4)
+      ctx.roundRect(px - size / 2 + 1, py - size / 2 + 1, size, size, 3)
       ctx.fill() // 硬阴影
       ctx.fillStyle = color
       ctx.beginPath()
-      ctx.roundRect(px - size / 2, py - size / 2, size, size, 4)
+      ctx.roundRect(px - size / 2, py - size / 2, size, size, 3)
+      ctx.fill()
+      // 高光（立体感，docs/09 精细度升级）
+      ctx.fillStyle = "rgba(255,255,255,0.18)"
+      ctx.beginPath()
+      ctx.roundRect(px - size / 2 + 1, py - size / 2 + 1, size - 2, Math.max(1, size * 0.3), 2)
       ctx.fill()
       // 花纹（docs/09 蛇身外观）
-      this.drawPattern(ctx, theme.snakeStyle.pattern, px, py, size, i, len, color)
+      this.drawPattern(ctx, theme.snakeStyle.pattern, px, py, size, i, len, color, u)
     }
     // 卡通头
     const headPos = cur[0]
     const hpx = (headPos.x + (cur[0].x - headPos.x) * ease) * CELL + CELL / 2
     const hpy = (headPos.y + (cur[0].y - headPos.y) * ease) * CELL + CELL / 2 - lift
-    this.drawHead(ctx, theme.snakeStyle.head, hpx, hpy, anim.angle, color, outline, t)
+    this.drawHead(ctx, theme.snakeStyle.head, hpx, hpy, anim.angle, color, outline, t, u)
     ctx.restore()
 
     anim.prevBody = cur.map((c) => ({ ...c }))
@@ -246,22 +252,23 @@ export class Renderer {
     i: number,
     len: number,
     color: string,
+    u: number,
   ): void {
     switch (pattern) {
       case "stripe": // 条纹
         ctx.fillStyle = "rgba(0,0,0,0.25)"
-        ctx.fillRect(px - size / 2 + 1, py + size / 2 - 5, size - 2, 2)
+        ctx.fillRect(px - size / 2 + 1, py + size / 2 - 4 * u, size - 2, 2)
         break
       case "scale": // 鳞片
-        ctx.fillStyle = "rgba(255,255,255,0.18)"
+        ctx.fillStyle = "rgba(255,255,255,0.2)"
         ctx.beginPath()
-        ctx.arc(px, py + 1, 2, 0, Math.PI * 2)
+        ctx.arc(px, py + 1, 1.6, 0, Math.PI * 2)
         ctx.fill()
         ctx.beginPath()
-        ctx.arc(px - 3, py + 3, 1.5, 0, Math.PI * 2)
+        ctx.arc(px - 2.5, py + 2.5, 1.2, 0, Math.PI * 2)
         ctx.fill()
         ctx.beginPath()
-        ctx.arc(px + 3, py + 3, 1.5, 0, Math.PI * 2)
+        ctx.arc(px + 2.5, py + 2.5, 1.2, 0, Math.PI * 2)
         ctx.fill()
         break
       case "block": // 方块拼接：节间缝隙 + 内发光
@@ -269,7 +276,7 @@ export class Renderer {
         ctx.fillRect(px - size / 2 + 1, py - size / 2 + 1, size - 2, 1)
         ctx.fillStyle = "rgba(255,255,255,0.15)"
         ctx.beginPath()
-        ctx.arc(px, py, size / 2 - 3, 0, Math.PI * 2)
+        ctx.arc(px, py, size / 2 - 2.5, 0, Math.PI * 2)
         ctx.fill()
         break
       case "gradient": // 渐变蛇：节间明度递进
@@ -277,7 +284,7 @@ export class Renderer {
           const f = 1 - i / len
           ctx.fillStyle = `rgba(255,255,255,${0.15 * f})`
           ctx.beginPath()
-          ctx.roundRect(px - size / 2, py - size / 2, size, size, 4)
+          ctx.roundRect(px - size / 2, py - size / 2, size, size, 3)
           ctx.fill()
         }
         break
@@ -294,10 +301,12 @@ export class Renderer {
     color: string,
     outline: string,
     t: number,
+    u: number,
   ): void {
     ctx.save()
     ctx.translate(px, py)
     ctx.rotate(angle)
+    ctx.scale(u, u) // 12px 格缩放（内部按 16px 格设计）
     const blink = Math.sin(t * 0.8) > 0.97 ? 0.2 : 1 // 眨眼（周期 ~8s）
     switch (head) {
       case "cat": {
@@ -389,77 +398,95 @@ export class Renderer {
     theme: Theme,
     t: number,
   ): void {
+    const u = CELL / 16
     const px = f.x * CELL + CELL / 2
     const py = f.y * CELL + CELL / 2
     const color = theme.palette.food
     ctx.save()
+    ctx.translate(px, py)
+    ctx.scale(u, u)
     switch (theme.foodStyle) {
       case "berry": {
-        // 红浆果：圆 + 高光 + 叶柄
+        // 红浆果：圆 + 高光 + 叶柄 + 底部阴影
         const s = 1 + 0.08 * Math.sin(t * 5.2)
+        ctx.fillStyle = "rgba(0,0,0,0.35)"
+        ctx.beginPath()
+        ctx.ellipse(0, 2.5, 4 * s, 2, 0, 0, Math.PI * 2)
+        ctx.fill()
         ctx.fillStyle = color
         ctx.beginPath()
-        ctx.arc(px, py + 1, 4.5 * s, 0, Math.PI * 2)
+        ctx.arc(0, 1, 4.5 * s, 0, Math.PI * 2)
         ctx.fill()
-        ctx.fillStyle = "#ffffff"
-        ctx.globalAlpha = 0.5
+        ctx.fillStyle = "rgba(255,255,255,0.55)"
         ctx.beginPath()
-        ctx.arc(px - 1.5, py - 0.5, 1.4, 0, Math.PI * 2)
+        ctx.arc(-1.5, -0.5, 1.4, 0, Math.PI * 2)
         ctx.fill()
-        ctx.globalAlpha = 1
         ctx.fillStyle = theme.palette.obstacle
-        ctx.fillRect(px - 1, py - 5, 2, 2)
+        ctx.fillRect(-1, -5, 2, 2)
         break
       }
       case "gold": {
-        // 金块：方块 + 斜纹 + 闪光
+        // 金块：方块 + 斜面高光 + 闪光 + 阴影
+        ctx.fillStyle = "rgba(0,0,0,0.35)"
+        ctx.fillRect(-4, 1, 10, 10)
         ctx.fillStyle = color
-        ctx.fillRect(px - 5, py - 5, 10, 10)
-        ctx.fillStyle = "rgba(255,255,255,0.35)"
-        ctx.fillRect(px - 5, py - 5, 10, 3)
+        ctx.fillRect(-5, -5, 10, 10)
+        ctx.fillStyle = "rgba(255,255,255,0.4)"
+        ctx.fillRect(-5, -5, 10, 3)
+        ctx.fillStyle = "rgba(255,255,255,0.2)"
+        ctx.fillRect(-5, -2, 10, 1)
         const shine = triangleWave(t, 0.8)
-        ctx.fillStyle = "rgba(255,255,255,0.5)"
-        ctx.fillRect(px - 5 + shine * 10, py - 4, 1.5, 8)
+        ctx.fillStyle = "rgba(255,255,255,0.55)"
+        ctx.fillRect(-5 + shine * 10, -4, 1.5, 8)
         break
       }
       case "energy": {
-        // 能量块：菱形 + 内发光 + 脉冲
+        // 能量块：菱形 + 内发光 + 脉冲 + 外晕
         const s = 1 + 0.12 * Math.sin(t * 7)
         ctx.fillStyle = color
+        ctx.globalAlpha = 0.25 + 0.2 * Math.sin(t * 7)
         ctx.beginPath()
-        ctx.moveTo(px, py - 5.5 * s)
-        ctx.lineTo(px + 5.5 * s, py)
-        ctx.lineTo(px, py + 5.5 * s)
-        ctx.lineTo(px - 5.5 * s, py)
+        ctx.arc(0, 0, 8.5 * s, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.globalAlpha = 1
+        ctx.beginPath()
+        ctx.moveTo(0, -5.5 * s)
+        ctx.lineTo(5.5 * s, 0)
+        ctx.lineTo(0, 5.5 * s)
+        ctx.lineTo(-5.5 * s, 0)
         ctx.closePath()
         ctx.fill()
         ctx.fillStyle = "#ffffff"
         ctx.globalAlpha = 0.4 + 0.3 * Math.sin(t * 7)
         ctx.beginPath()
-        ctx.moveTo(px, py - 2.5 * s)
-        ctx.lineTo(px + 2.5 * s, py)
-        ctx.lineTo(px, py + 2.5 * s)
-        ctx.lineTo(px - 2.5 * s, py)
+        ctx.moveTo(0, -2.5 * s)
+        ctx.lineTo(2.5 * s, 0)
+        ctx.lineTo(0, 2.5 * s)
+        ctx.lineTo(-2.5 * s, 0)
         ctx.closePath()
         ctx.fill()
         break
       }
       case "pearl": {
-        // 珍珠：白圆 + 晕光 + 呼吸
+        // 珍珠：白圆 + 晕光 + 呼吸 + 高光
         const s = 1 + 0.1 * Math.sin(t * 4.2)
         ctx.fillStyle = theme.palette.accent
         ctx.globalAlpha = 0.25 + 0.15 * Math.sin(t * 4.2)
         ctx.beginPath()
-        ctx.arc(px, py, 8, 0, Math.PI * 2)
+        ctx.arc(0, 0, 8, 0, Math.PI * 2)
         ctx.fill()
         ctx.globalAlpha = 1
         ctx.fillStyle = color
         ctx.beginPath()
-        ctx.arc(px, py, 4.5 * s, 0, Math.PI * 2)
+        ctx.arc(0, 0, 4.5 * s, 0, Math.PI * 2)
         ctx.fill()
         ctx.fillStyle = "#ffffff"
         ctx.beginPath()
-        ctx.arc(px - 1.5, py - 1.5, 1.6, 0, Math.PI * 2)
+        ctx.arc(-1.5, -1.5, 1.6, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = "rgba(120,180,255,0.35)"
+        ctx.beginPath()
+        ctx.arc(1, 1.5, 1.2, 0, Math.PI * 2)
         ctx.fill()
         break
       }

@@ -10,7 +10,7 @@ import type { Direction, GameEvent, MapData, Theme } from "./core/types"
 const testVoidMap: MapData = {
   id: "test-void",
   name: "测试空地图",
-  grid: { w: 16, h: 12 },
+  grid: { w: 24, h: 18 },
   spawn: { x: 2, y: 2 },
   staticObstacles: [],
   dynamicObstacles: [],
@@ -25,7 +25,7 @@ const testVoidTheme: Theme = {
     obstacle: "#ffffff", outline: "#000000", uiText: "#ffffff",
   },
   shadow: { offset: 4, color: "#000000" },
-  radius: 4,
+  radius: 3,
   texture: { base: "gradient", dither: false, ao: 0 },
   bgDecor: [],
   parallax: { layers: 3, depth: 1 },

@@ -42,7 +42,7 @@ export function DebugPanel(): React.JSX.Element | null {
     <div style={{
       position: "fixed", right: 12, bottom: 12, zIndex: 999,
       background: "rgba(0,0,0,0.85)", border: "2px solid #ffd24d",
-      borderRadius: 8, padding: 12, fontSize: 13, fontFamily: "monospace",
+      borderRadius: 8, padding: 12, fontSize: 12, fontFamily: "monospace",
       color: "#eee", display: "flex", flexDirection: "column", gap: 8, minWidth: 210,
     }}>
       <div style={{ color: "#ffd24d", fontWeight: "bold" }}>⚙ 调试面板 (F1)</div>

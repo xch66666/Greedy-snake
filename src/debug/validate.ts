@@ -13,7 +13,7 @@ const PALETTE_SLOTS = [
 
 /** 全局风格量化值（docs/02 1.4，改动必须先改文档） */
 export const STYLE_RULES = {
-  radius: 4,
+  radius: 3, // 12px 格画布圆角（docs/09 网格升级后）
   shadowOffset: 4,
   animDurMin: 150,
   animDurMax: 450,

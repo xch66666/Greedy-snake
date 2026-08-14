@@ -2,7 +2,7 @@
 // render/camera.ts —— 整数倍缩放与布局（docs/02 第 2 节，docs/08 已知坑 #6）
 // ============================================================
 
-export const CELL = 16 // 格子像素（内部低分辨率）
+export const CELL = 12 // 格子像素（内部低分辨率；12px 更精细，docs/09 更新）
 
 /** 计算最佳整数倍（最大整数倍且不超容器，保证像素锐利） */
 export function fitScale(

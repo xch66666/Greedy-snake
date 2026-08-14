@@ -20,7 +20,7 @@ function Boot(): React.JSX.Element {
       <div className="px-progress" style={{ marginTop: 24 }}>
         <div style={{ width: `${Math.round(progress * 100)}%` }} />
       </div>
-      <div style={{ fontSize: 13, opacity: 0.7, marginTop: 8 }}>
+      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
         {Math.round(progress * 100)}% · 正在加载资源…
       </div>
     </div>

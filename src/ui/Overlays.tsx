@@ -31,7 +31,7 @@ export function PauseOverlay(): React.JSX.Element | null {
   return (
     <div className="overlay" style={{ background: "rgba(0,0,0,0.4)" }}>
       <div className="modal px-card" style={{ alignItems: "center", width: 320 }}>
-        <div className="px-title" style={{ fontSize: 30 }}>⏸ 已暂停</div>
+        <div className="px-title" style={{ fontSize: 24 }}>⏸ 已暂停</div>
         <button className="px-btn" style={{ width: 220 }} onClick={resume}>继续 (P)</button>
         <button className="px-btn secondary" style={{ width: 220 }}
           onClick={() => { audio.click(); setSettingsOpen(true) }}>设置</button>
@@ -71,13 +71,13 @@ export function GameOverOverlay(): React.JSX.Element | null {
   return (
     <div className="overlay">
       <div className="result-card px-card">
-        <div className="px-title" style={{ fontSize: 32 }}>游戏结束</div>
+        <div className="px-title" style={{ fontSize: 24 }}>游戏结束</div>
         {mode === "coop" ? (
           <>
             <div className="score-line">
               P1 {result.scores[1]} <span style={{ opacity: 0.6 }}>vs</span> P2 {result.scores[2]}
             </div>
-            <div style={{ fontSize: 18 }}>
+            <div style={{ fontSize: 12 }}>
               {result.winner === "draw" ? "平局！" : `🏆 P${result.winner} 获胜`}
             </div>
             {result.isRecord && <div className="record">★ 双人合计新纪录</div>}

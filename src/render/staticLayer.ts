@@ -80,24 +80,25 @@ function drawTexture(
   rng: () => number,
 ): void {
   const t = theme.texture
+  const u = CELL / 16
   switch (t.base) {
     case "leaf":
       // 叶片暗纹 + 光斑
-      for (let i = 0; i < 26; i++) {
+      for (let i = 0; i < 30; i++) {
         const x = rng() * w
         const y = rng() * h
-        const r = 4 + rng() * 8
+        const r = (4 + rng() * 8) * u
         ctx.globalAlpha = 0.08
         ctx.fillStyle = "#000000"
         ctx.beginPath()
         ctx.ellipse(x, y, r, r * 0.6, rng() * Math.PI, 0, Math.PI * 2)
         ctx.fill()
       }
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 12; i++) {
         ctx.globalAlpha = 0.12
         ctx.fillStyle = "#8fd45c"
         ctx.beginPath()
-        ctx.arc(rng() * w, rng() * h, 2 + rng() * 6, 0, Math.PI * 2)
+        ctx.arc(rng() * w, rng() * h, (2 + rng() * 6) * u, 0, Math.PI * 2)
         ctx.fill()
       }
       break
@@ -106,14 +107,14 @@ function drawTexture(
       ctx.globalAlpha = 0.5
       ctx.strokeStyle = "#000000"
       ctx.lineWidth = 1
-      const bh = 8
+      const bh = 8 * u
       for (let y = 0; y < h; y += bh) {
-        const off = (Math.floor(y / bh) % 2) * 8
+        const off = (Math.floor(y / bh) % 2) * 8 * u
         ctx.beginPath()
         ctx.moveTo(0, y + 0.5)
         ctx.lineTo(w, y + 0.5)
         ctx.stroke()
-        for (let x = -16 + off; x < w; x += 16) {
+        for (let x = -16 * u + off; x < w; x += 16 * u) {
           ctx.beginPath()
           ctx.moveTo(x + 0.5, y)
           ctx.lineTo(x + 0.5, y + bh)
@@ -122,14 +123,14 @@ function drawTexture(
       }
       // 裂纹
       ctx.globalAlpha = 0.35
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         let x = rng() * w
         let y = rng() * h
         ctx.beginPath()
         ctx.moveTo(x, y)
         for (let s = 0; s < 6; s++) {
-          x += (rng() - 0.5) * 14
-          y += rng() * 10
+          x += (rng() - 0.5) * 12 * u
+          y += rng() * 8 * u
           ctx.lineTo(x, y)
         }
         ctx.stroke()
@@ -151,11 +152,11 @@ function drawTexture(
       ctx.globalAlpha = 0.15
       ctx.strokeStyle = "#7fd8ff"
       ctx.lineWidth = 1
-      for (let i = 0; i < 6; i++) {
-        const baseY = (h / 6) * i + 4
+      for (let i = 0; i < 8; i++) {
+        const baseY = (h / 8) * i + 3
         ctx.beginPath()
-        for (let x = 0; x <= w; x += 4) {
-          const y = baseY + Math.sin((x / 32) * Math.PI * 2) * 3
+        for (let x = 0; x <= w; x += 3) {
+          const y = baseY + Math.sin((x / (24 * u)) * Math.PI * 2) * 2
           if (x === 0) ctx.moveTo(x, y)
           else ctx.lineTo(x, y)
         }
@@ -165,8 +166,8 @@ function drawTexture(
       ctx.globalAlpha = 0.08
       ctx.fillStyle = "#ffffff"
       for (let i = 0; i < 2; i++) {
-        const x = 40 + i * (w - 80) * (0.3 + rng() * 0.4)
-        ctx.fillRect(x, 0, 14, h)
+        const x = 40 * u + i * (w - 80 * u) * (0.3 + rng() * 0.4)
+        ctx.fillRect(x, 0, 12 * u, h)
       }
       break
     }
@@ -207,7 +208,7 @@ export function drawAo(
   ctx.globalAlpha = 1
 }
 
-/** 障碍本体（vine/stone/prism/coral，docs/09） */
+/** 障碍本体（vine/stone/prism/coral，docs/09）——多层绘制：阴影/主色/高光 */
 export function drawObstacleShape(
   ctx: CanvasRenderingContext2D,
   style: Theme["obstacleStyle"],
@@ -216,6 +217,7 @@ export function drawObstacleShape(
   theme: Theme,
   t: number,
 ): void {
+  const u = CELL / 16 // 12px 格缩放
   const color = theme.palette.obstacle
   const outline = theme.palette.outline
   const cx = px + CELL / 2
@@ -223,78 +225,111 @@ export function drawObstacleShape(
   ctx.save()
   switch (style) {
     case "vine": {
-      // 藤蔓柱：圆角柱 + 叶片（随 pulse 呼吸缩放由调用方控制）
+      // 藤蔓柱：阴影 + 圆角柱 + 高光条 + 叶片（呼吸由调用方缩放）
       const s = 0.85 + 0.15 * Math.sin(t * 2.5)
+      ctx.fillStyle = "rgba(0,0,0,0.4)"
+      ctx.beginPath()
+      ctx.roundRect(cx - 3 * u * s + 1, py + 3, 6 * u * s, CELL - 4, 3)
+      ctx.fill()
       ctx.fillStyle = outline
       ctx.beginPath()
-      ctx.roundRect(cx - 3 * s, py + 2, 6 * s, CELL - 4, 3)
+      ctx.roundRect(cx - 3 * u * s, py + 2, 6 * u * s, CELL - 4, 3)
       ctx.fill()
       ctx.fillStyle = color
       ctx.beginPath()
-      ctx.roundRect(cx - 2.5 * s, py + 3, 5 * s, CELL - 6, 2.5)
+      ctx.roundRect(cx - 2.5 * u * s, py + 3, 5 * u * s, CELL - 6, 2.5)
       ctx.fill()
+      // 高光条
+      ctx.fillStyle = "rgba(255,255,255,0.22)"
+      ctx.fillRect(cx - 1.8 * u * s, py + 4, 1.2 * u, CELL - 8)
       // 叶片
       ctx.fillStyle = theme.palette.snakeA
       ctx.beginPath()
-      ctx.ellipse(cx + 5 * s, py + 6, 2.5, 1.5, 0.4, 0, Math.PI * 2)
+      ctx.ellipse(cx + 4 * u * s, py + 5, 2 * u, 1.2 * u, 0.4, 0, Math.PI * 2)
       ctx.fill()
       break
     }
     case "stone": {
-      // 石墙：砖块 + 缝隙
+      // 石墙：砖块 + 缝隙 + 顶部高光 + 苔藓
+      ctx.fillStyle = "rgba(0,0,0,0.35)"
+      ctx.fillRect(px + 2, py + 2, CELL - 2, CELL - 2)
       ctx.fillStyle = color
       ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2)
       ctx.fillStyle = outline
       ctx.fillRect(px + 1, py + CELL / 2, CELL - 2, 1)
       ctx.fillRect(px + CELL / 2, py + 1, 1, CELL / 2 - 1)
+      // 顶部高光
+      ctx.fillStyle = "rgba(255,255,255,0.18)"
+      ctx.fillRect(px + 2, py + 2, CELL - 4, 2)
+      // 苔藓斑（地牢特色）
+      ctx.fillStyle = "rgba(70,110,60,0.35)"
+      ctx.beginPath()
+      ctx.arc(px + CELL * 0.7, py + CELL * 0.8, 2 * u, 0, Math.PI * 2)
+      ctx.fill()
       ctx.fillStyle = "rgba(0,0,0,0.3)"
       ctx.fillRect(px + 1, py + CELL - 2, CELL - 2, 1)
       break
     }
     case "prism": {
-      // 棱柱：菱形 + 高光旋转
+      // 棱柱：阴影 + 菱形 + 高光旋转 + 描边
       const rot = t * 1.2
       ctx.translate(cx, cy)
       ctx.rotate(rot)
+      ctx.fillStyle = "rgba(0,0,0,0.4)"
+      ctx.beginPath()
+      ctx.moveTo(1, -4 * u)
+      ctx.lineTo(5 * u, 1)
+      ctx.lineTo(1, 6 * u)
+      ctx.lineTo(-3 * u, 1)
+      ctx.closePath()
+      ctx.fill()
       ctx.fillStyle = color
       ctx.beginPath()
-      ctx.moveTo(0, -5)
-      ctx.lineTo(4, 0)
-      ctx.lineTo(0, 5)
-      ctx.lineTo(-4, 0)
+      ctx.moveTo(0, -5 * u)
+      ctx.lineTo(4 * u, 0)
+      ctx.lineTo(0, 5 * u)
+      ctx.lineTo(-4 * u, 0)
       ctx.closePath()
       ctx.fill()
       ctx.fillStyle = theme.palette.accent
-      ctx.globalAlpha = 0.6
+      ctx.globalAlpha = 0.7
       ctx.beginPath()
-      ctx.moveTo(0, -3)
-      ctx.lineTo(2, 0)
-      ctx.lineTo(0, 3)
-      ctx.lineTo(-2, 0)
+      ctx.moveTo(0, -3 * u)
+      ctx.lineTo(2 * u, 0)
+      ctx.lineTo(0, 3 * u)
+      ctx.lineTo(-2 * u, 0)
       ctx.closePath()
       ctx.fill()
       ctx.globalAlpha = 1
       break
     }
     case "coral": {
-      // 珊瑚：粉红分枝 + 荧光脉动
+      // 珊瑚：阴影 + 分枝 + 荧光脉动 + 高光
       const glow = 0.5 + 0.5 * Math.sin(t * 6.9)
+      ctx.fillStyle = "rgba(0,0,0,0.35)"
+      ctx.beginPath()
+      ctx.roundRect(px + 6, py + 5, 6, CELL - 8, 3)
+      ctx.fill()
       ctx.fillStyle = color
       ctx.beginPath()
       ctx.roundRect(px + 5, py + 4, 6, CELL - 8, 3)
       ctx.fill()
       ctx.beginPath()
-      ctx.ellipse(px + 3, py + 6, 3, 5, -0.5, 0, Math.PI * 2)
+      ctx.ellipse(px + 3 * u, py + 6, 3 * u, 5 * u, -0.5, 0, Math.PI * 2)
       ctx.fill()
       ctx.beginPath()
-      ctx.ellipse(px + 12, py + 7, 3, 4, 0.5, 0, Math.PI * 2)
+      ctx.ellipse(px + 11 * u, py + 7, 3 * u, 4 * u, 0.5, 0, Math.PI * 2)
       ctx.fill()
+      // 荧光光晕
       ctx.globalAlpha = 0.25 + 0.2 * glow
       ctx.fillStyle = "#ff9ecb"
       ctx.beginPath()
-      ctx.arc(cx, py + 5, 4, 0, Math.PI * 2)
+      ctx.arc(cx, py + 5, 4 * u, 0, Math.PI * 2)
       ctx.fill()
       ctx.globalAlpha = 1
+      // 高光点
+      ctx.fillStyle = "rgba(255,255,255,0.35)"
+      ctx.fillRect(px + 6, py + 5, 2, 1)
       break
     }
   }

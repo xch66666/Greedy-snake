@@ -229,6 +229,8 @@ export function GameCanvas(): React.JSX.Element {
     applyThemeVars(getMap(selectedMapId)?.themeId ?? "jungle")
     setBodyBg(getMap(selectedMapId)?.themeId ?? "jungle")
     audio.ensure()
+    // 新局重置特效状态（防上局死亡抖动/粒子残留，docs/10 坑 15）
+    rendererRef.current?.clearFx()
     return () => {
       engine.pause()
     }

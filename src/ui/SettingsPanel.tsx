@@ -48,14 +48,14 @@ export function SettingsPanel(): React.JSX.Element | null {
   return (
     <div className="overlay" onClick={() => setSettingsOpen(false)}>
       <div className="modal px-card" onClick={(e) => e.stopPropagation()}>
-        <div style={{ textAlign: "center", fontSize: 26 }}>设 置</div>
+        <div style={{ textAlign: "center", fontSize: 24 }}>设 置</div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>音效音量</span>
           <input type="range" className="px-slider" min={0} max={100} step={5}
             value={Math.round(save.settings.sfxVolume * 100)}
             onChange={(e) => update({ sfxVolume: Number(e.target.value) / 100 })} />
-          <span style={{ width: 44, textAlign: "right", fontSize: 13 }}>{Math.round(save.settings.sfxVolume * 100)}%</span>
+          <span style={{ width: 44, textAlign: "right", fontSize: 12 }}>{Math.round(save.settings.sfxVolume * 100)}%</span>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -63,7 +63,7 @@ export function SettingsPanel(): React.JSX.Element | null {
           <input type="range" className="px-slider" min={0} max={100} step={5}
             value={Math.round(save.settings.musicVolume * 100)}
             onChange={(e) => update({ musicVolume: Number(e.target.value) / 100 })} />
-          <span style={{ width: 44, textAlign: "right", fontSize: 13 }}>{Math.round(save.settings.musicVolume * 100)}%</span>
+          <span style={{ width: 44, textAlign: "right", fontSize: 12 }}>{Math.round(save.settings.musicVolume * 100)}%</span>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -92,7 +92,7 @@ export function SettingsPanel(): React.JSX.Element | null {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>自动降级</span>
-          <button className="px-btn" style={{ padding: "4px 12px", fontSize: 14, boxShadow: "none" }}
+          <button className="px-btn" style={{ padding: "4px 12px", fontSize: 12, boxShadow: "none" }}
             onClick={() => { audio.click(); update({ autoDowngrade: !save.settings.autoDowngrade }) }}>
             {save.settings.autoDowngrade ? "开" : "关"}
           </button>
@@ -101,7 +101,7 @@ export function SettingsPanel(): React.JSX.Element | null {
         <hr style={{ border: "1px solid rgba(255,255,255,0.15)" }} />
 
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <button className="px-btn danger" style={{ padding: "6px 16px", fontSize: 14 }}
+          <button className="px-btn danger" style={{ padding: "6px 16px", fontSize: 12 }}
             onClick={onDelete}>
             {confirmDelete ? "确认删除存档？" : "删除存档"}
           </button>

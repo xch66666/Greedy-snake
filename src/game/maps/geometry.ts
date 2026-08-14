@@ -1,11 +1,11 @@
 // ============================================================
-// maps/geometry.ts —— 极简几何（docs/09 第 3.7 节）
-// 布局：中心对称（中心点 7.5,5.5 镜像）
+// maps/geometry.ts —— 极简几何（docs/09 第 3.7 节，网格 24×18）
+// 布局：中心对称（中心点 11.5,8.5 镜像，源点集合互不成对）
 // ============================================================
 import type { DynamicObstacle, MapData } from "../core/types"
 
-const CX = 7.5
-const CY = 5.5
+const CX = 11.5
+const CY = 8.5
 
 /** 坐标按中心对称镜像 */
 function mirrorCells(cells: { x: number; y: number }[]): { x: number; y: number }[] {
@@ -15,7 +15,7 @@ function mirrorCells(cells: { x: number; y: number }[]): { x: number; y: number 
   ])
 }
 
-/** 动态障碍按中心对称镜像（cell 与 target 都要镜像） */
+/** 动态障碍按中心对称镜像（cell 与 target 都镜像） */
 function mirrorObstacle(o: DynamicObstacle): DynamicObstacle {
   return {
     ...o,
@@ -29,17 +29,20 @@ function mirrorObstacle(o: DynamicObstacle): DynamicObstacle {
 export const geometryMap: MapData = {
   id: "geometry",
   name: "极简几何",
-  grid: { w: 16, h: 12 },
+  grid: { w: 24, h: 18 },
   spawn: { x: 2, y: 2 },
   staticObstacles: mirrorCells([
     // 注意：源点集合内不能包含互为镜像的点（否则展开后重叠）
-    { x: 3, y: 3 },
-    { x: 13, y: 4 },
+    { x: 3, y: 4 },
+    { x: 13, y: 3 },
+    { x: 5, y: 12 },
+    { x: 18, y: 12 },
   ]),
   dynamicObstacles: (
     [
-      { cell: { x: 3, y: 7 }, motion: "patrol", params: { range: 2, speed: 5, phase: 0 }, target: { x: 3, y: 5 } },
-      { cell: { x: 7, y: 9 }, motion: "patrol", params: { range: 2, speed: 5, phase: 2.5 }, target: { x: 7, y: 7 } },
+      { cell: { x: 6, y: 8 }, motion: "patrol", params: { range: 2, speed: 5, phase: 0 }, target: { x: 6, y: 12 } },
+      { cell: { x: 9, y: 14 }, motion: "patrol", params: { range: 2, speed: 5, phase: 2.5 }, target: { x: 13, y: 14 } },
+      { cell: { x: 4, y: 6 }, motion: "patrol", params: { range: 2, speed: 5, phase: 1.2 }, target: { x: 4, y: 10 } },
     ] satisfies DynamicObstacle[]
   ).flatMap((o) => [o, mirrorObstacle(o)]),
   themeId: "geometry",

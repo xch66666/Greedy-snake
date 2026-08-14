@@ -18,7 +18,7 @@ export const geometryTheme: Theme = {
     uiText: "#e8eaf6",
   },
   shadow: { offset: 4, color: "#0d0f1a" },
-  radius: 4,
+  radius: 3,
   texture: { base: "gradient", dither: true, ao: 0.4 },
   bgDecor: [
     { kind: "geo", count: 10, periodMin: 4, periodMax: 8 },
