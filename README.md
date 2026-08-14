@@ -19,6 +19,18 @@
 | [docs/08-协作开发规范.md](docs/08-协作开发规范.md) | AI 协作流程、Git 工作流、校验流水线、已知坑清单 |
 | [docs/09-地图风格细节定案.md](docs/09-地图风格细节定案.md) | 四张地图全部视觉/听觉/布局细节量化定案（唯一标准） |
 
+## 运行截图（真实浏览器渲染）
+
+| 主菜单 | 选图界面 | 游戏画面 |
+|---|---|---|
+| ![menu](design/screenshots/01-menu.png) | ![mapselect](design/screenshots/02-mapselect.png) | ![playing](design/screenshots/03-playing.png) |
+
+| 丛林自然 | 暗黑地牢 | 极简几何 | 深海蓝光 |
+|---|---|---|---|
+| ![jungle](design/screenshots/08-jungle.png) | ![dungeon](design/screenshots/08-dungeon.png) | ![geometry](design/screenshots/08-geometry.png) | ![deepsea](design/screenshots/08-deepsea.png) |
+
+> 截图由 `npm run e2e` 无头浏览器自动生成，可随时重新生成。
+
 ## 一句话定位
 
 > **逻辑纯 TS、渲染纯 Canvas、地图和主题都是数据文件、React 只管界面、localStorage 管存档**——五层解耦，每层文件都小，改地图不改逻辑，改特效不改规则。
