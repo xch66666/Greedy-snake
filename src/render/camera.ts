@@ -24,27 +24,27 @@ export function fitScale(
 }
 
 /**
- * 覆盖式满屏缩放（docs/13 全屏铺满）：
- * 优先取"铺满容器的最小整数倍"（超出部分 ≤15% 时裁剪铺满）；
- * 超出过多则退回最大不超整数倍（居中留边）。
- * 2560×1440：视口 40×23 → scale 4 → 2560×1472，裁 32px 满屏锐利。
+ * 满屏缩放决策（docs/13 全屏铺满，任何窗口/DPI 都无黑边）：
+ * - cover：整数倍铺满（溢出 ≤20% 且不足 ≤5% 时裁剪/微调，像素锐利）
+ * - stretch：拉伸铺满（整数倍不可行时，最近邻保持像素感）
  */
-export function coverScale(
+export function screenScale(
   containerW: number,
   containerH: number,
   internalW: number,
   internalH: number,
-): number {
-  if (containerW <= 0 || containerH <= 0) return 1
+): { scale: number; mode: "cover" | "stretch" } {
+  if (containerW <= 0 || containerH <= 0) return { scale: 1, mode: "cover" }
   const fit = Math.min(containerW / internalW, containerH / internalH)
-  const floor = Math.max(1, Math.floor(fit))
   const ceil = Math.max(1, Math.ceil(fit))
-  if (ceil > floor) {
-    const overW = (internalW * ceil - containerW) / containerW
-    const overH = (internalH * ceil - containerH) / containerH
-    if (overW <= 0.15 && overH <= 0.15) return ceil
+  const overW = (internalW * ceil - containerW) / containerW
+  const overH = (internalH * ceil - containerH) / containerH
+  // cover 条件：溢出 ≤20%（裁剪），不足 ≤5%（基本贴合）
+  if (overW <= 0.2 && overH <= 0.2 && overW >= -0.05 && overH >= -0.05) {
+    return { scale: ceil, mode: "cover" }
   }
-  return floor
+  // 整数倍无法铺满 → 拉伸铺满（任何窗口都无黑边）
+  return { scale: 1, mode: "stretch" }
 }
 
 /** 画布内容居中偏移（整数像素，避免抖动） */

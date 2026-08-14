@@ -231,6 +231,10 @@ export function GameCanvas(): React.JSX.Element {
     audio.ensure()
     // 新局重置特效状态（防上局死亡抖动/粒子残留，docs/10 坑 15）
     rendererRef.current?.clearFx()
+    // 真全屏（docs/13：进游戏自动全屏，隐藏浏览器界面）
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => { /* 被拒绝则页面内铺满兜底 */ })
+    }
     return () => {
       engine.pause()
     }

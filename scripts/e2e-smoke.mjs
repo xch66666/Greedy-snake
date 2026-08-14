@@ -130,6 +130,18 @@ try {
     await clickByText("开始游戏")
     await page.waitForSelector("canvas", { timeout: 10000 })
     await new Promise((r) => setTimeout(r, 1000))
+    // 满屏铺满验证（docs/13）：canvas 显示尺寸 ≈ 视口尺寸（无黑边）
+    const fullscreenCheck = await page.evaluate(() => {
+      const c = document.querySelector("canvas")
+      if (!c) return null
+      const rect = c.getBoundingClientRect()
+      return { cw: Math.round(rect.width), ch: Math.round(rect.height), vw: window.innerWidth, vh: window.innerHeight }
+    })
+    if (!fullscreenCheck ||
+      Math.abs(fullscreenCheck.cw - fullscreenCheck.vw) > 2 ||
+      Math.abs(fullscreenCheck.ch - fullscreenCheck.vh) > 2) {
+      throw new Error(`画面未铺满视口: ${JSON.stringify(fullscreenCheck)}`)
+    }
     await page.screenshot({ path: `${SHOTS}/08-${mapId}.png` })
 
     const top = await canvasTopColors()

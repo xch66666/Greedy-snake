@@ -4,7 +4,7 @@
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
 import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
-import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, coverScale, type ViewSize } from "./camera"
+import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, screenScale, type ViewSize } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
 import { drawAo, drawObstacleShape, renderStaticLayer } from "./staticLayer"
@@ -54,17 +54,23 @@ export class Renderer {
     this.ctx = canvas.getContext("2d")!
   }
 
-  /** 画布尺寸适配（覆盖式满屏，docs/13：全屏铺满） */
+  /** 画布尺寸适配（满屏：整数倍裁剪优先，拉伸兜底，docs/13 任何窗口无黑边） */
   fit(containerW: number, containerH: number): { scale: number; w: number; h: number } {
     this.lastContainerW = containerW
     this.lastContainerH = containerH
-    const scale = coverScale(containerW, containerH, VIEW_PX_W, VIEW_PX_H)
+    const { scale, mode } = screenScale(containerW, containerH, VIEW_PX_W, VIEW_PX_H)
     this.canvas.width = VIEW_PX_W
     this.canvas.height = VIEW_PX_H
-    this.canvas.style.width = `${VIEW_PX_W * scale}px`
-    this.canvas.style.height = `${VIEW_PX_H * scale}px`
+    if (mode === "stretch") {
+      // 拉伸铺满（非整数倍，最近邻保持像素感）
+      this.canvas.style.width = `${containerW}px`
+      this.canvas.style.height = `${containerH}px`
+    } else {
+      this.canvas.style.width = `${VIEW_PX_W * scale}px`
+      this.canvas.style.height = `${VIEW_PX_H * scale}px`
+    }
     this.canvas.style.imageRendering = "pixelated"
-    return { scale, w: VIEW_PX_W, h: VIEW_PX_H }
+    return { scale: mode === "stretch" ? 1 : scale, w: VIEW_PX_W, h: VIEW_PX_H }
   }
 
   /** 每帧渲染 */
@@ -107,11 +113,16 @@ export class Renderer {
     const pxW = this.viewW * CELL
     const pxH = this.viewH * CELL
     if (this.canvas.width !== pxW || this.canvas.height !== pxH) {
-      const scale = coverScale(this.lastContainerW, this.lastContainerH, pxW, pxH)
+      const { scale, mode } = screenScale(this.lastContainerW, this.lastContainerH, pxW, pxH)
       this.canvas.width = pxW
       this.canvas.height = pxH
-      this.canvas.style.width = `${pxW * scale}px`
-      this.canvas.style.height = `${pxH * scale}px`
+      if (mode === "stretch") {
+        this.canvas.style.width = `${this.lastContainerW}px`
+        this.canvas.style.height = `${this.lastContainerH}px`
+      } else {
+        this.canvas.style.width = `${pxW * scale}px`
+        this.canvas.style.height = `${pxH * scale}px`
+      }
       // scale 档位切换 → 遮罩过渡，避免跳变感
       if (scale !== this.lastScale) {
         this.lastScale = scale

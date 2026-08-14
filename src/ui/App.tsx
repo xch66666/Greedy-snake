@@ -31,6 +31,15 @@ export function App(): React.JSX.Element | null {
         audio.toggleMute()
         return
       }
+      // F：切换真全屏（docs/13）
+      if (key === "f") {
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => { /* 忽略 */ })
+        } else {
+          document.documentElement.requestFullscreen?.().catch(() => { /* 忽略 */ })
+        }
+        return
+      }
       if (st.screen === "playing") {
         if (key === "p" || key === "escape") {
           if (st.hud.paused) {
@@ -51,6 +60,13 @@ export function App(): React.JSX.Element | null {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
+  // 离开游戏界面时退出全屏（docs/13 真全屏）
+  useEffect(() => {
+    if (screen !== "playing" && screen !== "gameover" && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => { /* 忽略 */ })
+    }
+  }, [screen])
+
   // 初始主题（默认丛林）
   useEffect(() => {
     applyThemeVars("jungle")
@@ -67,7 +83,7 @@ export function App(): React.JSX.Element | null {
             <GameCanvas />
             <ReviveBanner />
             <div className="game-hint">
-              P1: WASD · P2: 方向键 · P/Esc: 暂停 · R: 重开 · M: 静音
+              P1: WASD · P2: 方向键 · P:暂停 · R:重开 · M:静音 · F:全屏
             </div>
           </div>
           <HUD />
