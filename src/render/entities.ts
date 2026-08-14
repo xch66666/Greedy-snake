@@ -46,7 +46,7 @@ export function drawEntityAo(
   ctx.globalAlpha = 1
 }
 
-/** 主绘制入口 */
+/** 主绘制入口（注意：switch 内禁止 return 退出——必须执行末尾 restore，docs/10 坑 23） */
 export function drawEntity(
   ctx: CanvasRenderingContext2D,
   e: ObstacleEntity,
@@ -57,27 +57,27 @@ export function drawEntity(
   ctx.save()
   ctx.translate(b.x, b.y)
   switch (e.kind) {
-    case "tree": return drawTree(ctx, b.w, b.h, theme, t)
-    case "boulder": return drawBoulder(ctx, b.w, b.h, theme)
-    case "vinewall": return drawVineWall(ctx, b.w, b.h, theme, t)
-    case "pillar": return drawPillar(ctx, b.w, b.h, theme)
-    case "altar": return drawAltar(ctx, b.w, b.h, theme, t)
-    case "cage": return drawCage(ctx, b.w, b.h, theme, t)
-    case "prismBig": return drawPrismBig(ctx, b.w, b.h, theme, t)
-    case "obelisk": return drawObelisk(ctx, b.w, b.h, theme, t)
-    case "ring": return drawRing(ctx, b.w, b.h, theme, t)
-    case "reef": return drawReef(ctx, b.w, b.h, theme, t)
-    case "wreck": return drawWreck(ctx, b.w, b.h, theme, t)
-    case "anemone": return drawAnemone(ctx, b.w, b.h, theme, t)
+    case "tree": drawTree(ctx, b.w, b.h, theme, t); break
+    case "boulder": drawBoulder(ctx, b.w, b.h, theme); break
+    case "vinewall": drawVineWall(ctx, b.w, b.h, theme, t); break
+    case "pillar": drawPillar(ctx, b.w, b.h, theme); break
+    case "altar": drawAltar(ctx, b.w, b.h, theme, t); break
+    case "cage": drawCage(ctx, b.w, b.h, theme, t); break
+    case "prismBig": drawPrismBig(ctx, b.w, b.h, theme, t); break
+    case "obelisk": drawObelisk(ctx, b.w, b.h, theme, t); break
+    case "ring": drawRing(ctx, b.w, b.h, theme, t); break
+    case "reef": drawReef(ctx, b.w, b.h, theme, t); break
+    case "wreck": drawWreck(ctx, b.w, b.h, theme, t); break
+    case "anemone": drawAnemone(ctx, b.w, b.h, theme, t); break
     // 地形（平铺，docs/12 第 3 节）
-    case "pond": return drawPond(ctx, b.w, b.h, theme, t)
-    case "brambles": return drawBrambles(ctx, b.w, b.h, theme, t)
-    case "lavacrack": return drawLava(ctx, b.w, b.h, theme, t)
-    case "rubble": return drawRubble(ctx, b.w, b.h, theme)
-    case "crystal": return drawCrystal(ctx, b.w, b.h, theme, t)
-    case "voidpit": return drawVoidpit(ctx, b.w, b.h, theme, t)
-    case "sandbank": return drawSandbank(ctx, b.w, b.h, theme)
-    case "kelpfield": return drawKelpfield(ctx, b.w, b.h, theme, t)
+    case "pond": drawPond(ctx, b.w, b.h, theme, t); break
+    case "brambles": drawBrambles(ctx, b.w, b.h, theme, t); break
+    case "lavacrack": drawLava(ctx, b.w, b.h, theme, t); break
+    case "rubble": drawRubble(ctx, b.w, b.h, theme); break
+    case "crystal": drawCrystal(ctx, b.w, b.h, theme, t); break
+    case "voidpit": drawVoidpit(ctx, b.w, b.h, theme, t); break
+    case "sandbank": drawSandbank(ctx, b.w, b.h, theme); break
+    case "kelpfield": drawKelpfield(ctx, b.w, b.h, theme, t); break
   }
   ctx.restore()
 }
@@ -511,18 +511,18 @@ function drawReef(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Th
 
 function drawWreck(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
   const dark = theme.palette.outline
-  // 船体（倾斜弧线）
+  // 船体（倾斜弧线，占满上半格——docs/10 坑 22：碰撞=可见）
   ctx.fillStyle = dark
   ctx.beginPath()
   ctx.moveTo(2, h - 3)
-  ctx.quadraticCurveTo(w * 0.3, h * 0.5, w * 0.75, h * 0.62)
+  ctx.quadraticCurveTo(w * 0.3, h * 0.28, w * 0.75, h * 0.45)
   ctx.lineTo(w - 3, h - 3)
   ctx.closePath()
   ctx.fill()
   ctx.fillStyle = "#6b4a2f"
   ctx.beginPath()
   ctx.moveTo(3, h - 4)
-  ctx.quadraticCurveTo(w * 0.3, h * 0.55, w * 0.75, h * 0.66)
+  ctx.quadraticCurveTo(w * 0.3, h * 0.32, w * 0.75, h * 0.5)
   ctx.lineTo(w - 4, h - 4)
   ctx.closePath()
   ctx.fill()
@@ -531,20 +531,41 @@ function drawWreck(ctx: CanvasRenderingContext2D, w: number, h: number, theme: T
   ctx.lineWidth = 1
   ctx.beginPath()
   ctx.moveTo(w * 0.2, h - 4)
-  ctx.lineTo(w * 0.32, h * 0.62)
+  ctx.lineTo(w * 0.32, h * 0.38)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(w * 0.5, h - 4)
+  ctx.lineTo(w * 0.55, h * 0.42)
   ctx.stroke()
   // 破洞
   ctx.fillStyle = dark
   ctx.beginPath()
   ctx.arc(w * 0.55, h - 4, 3, 0, Math.PI * 2)
   ctx.fill()
-  // 斜插桅杆
+  // 斜插桅杆（顶部可见，填充上半格）
   ctx.fillStyle = "#4a3a28"
   ctx.save()
-  ctx.translate(w * 0.28, h * 0.55)
+  ctx.translate(w * 0.28, h * 0.5)
   ctx.rotate(-0.7)
-  ctx.fillRect(-1, -h * 0.5, 2, h * 0.5)
+  ctx.fillRect(-1, -h * 0.45, 2, h * 0.45)
   ctx.restore()
+  // 破帆布（覆盖右上格，docs/10 坑 22：全格可见）
+  ctx.fillStyle = "rgba(200,190,170,0.5)"
+  ctx.beginPath()
+  ctx.moveTo(w * 0.28, h * 0.08)
+  ctx.lineTo(w * 0.8, h * 0.05)
+  ctx.lineTo(w * 0.78, h * 0.52)
+  ctx.lineTo(w * 0.28, h * 0.52)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = "rgba(255,255,255,0.15)"
+  ctx.beginPath()
+  ctx.moveTo(w * 0.32, h * 0.12)
+  ctx.lineTo(w * 0.42, h * 0.1)
+  ctx.lineTo(w * 0.4, h * 0.3)
+  ctx.lineTo(w * 0.32, h * 0.32)
+  ctx.closePath()
+  ctx.fill()
   // 海藻覆盖
   ctx.fillStyle = theme.palette.snakeB
   ctx.globalAlpha = 0.7
@@ -587,25 +608,24 @@ function drawAnemone(ctx: CanvasRenderingContext2D, w: number, h: number, theme:
 
 // ---------- 地形（平铺，docs/12 第 3 节） ----------
 
-/** 水塘：深蓝水面 + 波光 + 岸边亮边 */
+/** 水塘：深蓝水面 + 波光 + 岸边亮边（提亮水面，docs/10 坑 22：与背景区分） */
 function drawPond(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
   const dark = theme.palette.outline
-  // 水底
-  ctx.fillStyle = "#16294a"
+  // 水底（提亮，与背景明显区分）
+  ctx.fillStyle = "#1d3a66"
   ctx.beginPath()
   ctx.roundRect(1, 1, w - 2, h - 2, 5)
   ctx.fill()
-  ctx.fillStyle = dark
-  ctx.globalAlpha = 0.4
-  ctx.beginPath()
-  ctx.roundRect(1, 1, w - 2, h - 2, 5)
-  ctx.stroke()
-  ctx.globalAlpha = 1
-  // 岸边亮边（左上受光）
+  // 岸边亮边（双圈）
   ctx.strokeStyle = "#3a6ea5"
-  ctx.lineWidth = 1.5
+  ctx.lineWidth = 2
   ctx.beginPath()
   ctx.roundRect(2, 2, w - 4, h - 4, 4)
+  ctx.stroke()
+  ctx.strokeStyle = "rgba(255,255,255,0.25)"
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.roundRect(3, 3, w - 6, h - 6, 3)
   ctx.stroke()
   // 波光（sin 闪烁）
   for (let i = 0; i < 5; i++) {
@@ -613,20 +633,27 @@ function drawPond(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Th
     const y = 4 + ((i * 7) % Math.max(1, h - 8))
     const g = 0.5 + 0.5 * Math.sin(t * 2.5 + i * 1.3)
     ctx.fillStyle = "#8fd8ff"
-    ctx.globalAlpha = 0.3 + 0.4 * g
+    ctx.globalAlpha = 0.35 + 0.45 * g
     ctx.fillRect(x, y, 3, 1)
   }
   ctx.globalAlpha = 1
+  void dark
 }
 
-/** 荆棘丛：深绿刺丛 + 刺点 + 浆果警告色 */
+/** 荆棘丛：深绿刺丛 + 亮绿轮廓 + 刺点 + 浆果警告色（docs/10 坑 22 对比度） */
 function drawBrambles(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
   const dark = theme.palette.outline
-  // 刺丛底
-  ctx.fillStyle = "#1d3a22"
+  // 刺丛底（提亮）
+  ctx.fillStyle = "#2a4a30"
   ctx.beginPath()
   ctx.roundRect(1, 1, w - 2, h - 2, 4)
   ctx.fill()
+  // 亮绿轮廓（与背景区分）
+  ctx.strokeStyle = "#4a7a4f"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(1.5, 1.5, w - 3, h - 3, 3)
+  ctx.stroke()
   // 刺簇
   for (let i = 0; i < 8; i++) {
     const x = 3 + ((i * 13) % Math.max(1, w - 8))
@@ -638,7 +665,7 @@ function drawBrambles(ctx: CanvasRenderingContext2D, w: number, h: number, theme
     ctx.lineTo(x + 4, y + 3)
     ctx.closePath()
     ctx.fill()
-    ctx.fillStyle = "#3f6b45"
+    ctx.fillStyle = "#4f8a58"
     ctx.beginPath()
     ctx.moveTo(x + 0.5, y + 3)
     ctx.lineTo(x + 2, y)
@@ -656,14 +683,21 @@ function drawBrambles(ctx: CanvasRenderingContext2D, w: number, h: number, theme
   ctx.globalAlpha = 1
 }
 
-/** 熔岩裂缝：黑缝 + 发光内核（脉动）+ 火星 */
-function drawLava(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
-  const dark = theme.palette.outline
-  // 裂缝底
-  ctx.fillStyle = "#1a0f0a"
+/** 熔岩裂缝：黑缝 + 发光内核（脉动）+ 火星（底提亮+橙红描边，docs/10 坑 22） */
+function drawLava(ctx: CanvasRenderingContext2D, w: number, h: number, _theme: Theme, t: number): void {
+  // 裂缝底（提亮）
+  ctx.fillStyle = "#2a1a12"
   ctx.beginPath()
   ctx.roundRect(1, 1, w - 2, h - 2, 3)
   ctx.fill()
+  // 橙红描边（与地牢 bg 区分）
+  ctx.strokeStyle = "#b85a2a"
+  ctx.lineWidth = 1.5
+  ctx.globalAlpha = 0.8
+  ctx.beginPath()
+  ctx.roundRect(1.5, 1.5, w - 3, h - 3, 2)
+  ctx.stroke()
+  ctx.globalAlpha = 1
   // 发光内核（波浪脉动）
   const g = 0.5 + 0.5 * Math.sin(t * 4)
   ctx.fillStyle = "#e07b39"
@@ -694,16 +728,21 @@ function drawLava(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Th
   ctx.globalAlpha = 0.8
   ctx.fillRect(mx, 2, 1, 2)
   ctx.globalAlpha = 1
-  void dark
 }
 
-/** 碎石堆：灰石块 + 深缝 + 高光 */
+/** 碎石堆：灰石块 + 深缝 + 高光 + 亮轮廓（docs/10 坑 22 对比度） */
 function drawRubble(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme): void {
   const dark = theme.palette.outline
-  ctx.fillStyle = "#2a241c"
+  ctx.fillStyle = "#352e24"
   ctx.beginPath()
   ctx.roundRect(1, 1, w - 2, h - 2, 4)
   ctx.fill()
+  // 亮灰轮廓
+  ctx.strokeStyle = "#6a5f50"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(1.5, 1.5, w - 3, h - 3, 3)
+  ctx.stroke()
   // 碎石块
   const stones = [[3, 3, 7, 6], [11, 2, 8, 5], [5, 10, 9, 7], [15, 9, 6, 6], [2, 16, 8, 5], [12, 16, 7, 5]]
   for (const [sx, sy, sw, sh] of stones) {
@@ -727,14 +766,19 @@ function drawRubble(ctx: CanvasRenderingContext2D, w: number, h: number, theme: 
   ctx.globalAlpha = 1
 }
 
-/** 水晶簇：基岩 + 多根晶柱 + 棱线高光 + 微光 */
+/** 水晶簇：基岩 + 多根晶柱 + 棱线高光 + 微光（基岩提亮，docs/10 坑 22） */
 function drawCrystal(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
   const dark = theme.palette.outline
-  // 基岩
-  ctx.fillStyle = "#24283a"
+  // 基岩（提亮 + 亮边）
+  ctx.fillStyle = "#2e3348"
   ctx.beginPath()
   ctx.roundRect(1, h * 0.6, w - 2, h * 0.4, 3)
   ctx.fill()
+  ctx.strokeStyle = "#4a5270"
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.roundRect(1.5, h * 0.6, w - 3, h * 0.4, 3)
+  ctx.stroke()
   // 晶柱（青/品红/蓝）：[x比例, 高度比例, 半宽, 颜色]
   const crystals: [number, number, number, string][] = [
     [w * 0.2, 0.55, 5, "#29c4c4"],
@@ -839,18 +883,24 @@ function drawSandbank(ctx: CanvasRenderingContext2D, w: number, h: number, theme
   void dark
 }
 
-/** 海藻林：暗绿海藻丛 + 顶部摇曳 + 气泡 */
+/** 海藻林：暗绿海藻丛 + 顶部摇曳 + 气泡（提亮+亮边，docs/10 坑 22） */
 function drawKelpfield(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
   const dark = theme.palette.outline
-  ctx.fillStyle = "#123524"
+  ctx.fillStyle = "#1a4a30"
   ctx.beginPath()
   ctx.roundRect(1, 1, w - 2, h - 2, 4)
   ctx.fill()
+  // 亮边（与深海 bg 区分）
+  ctx.strokeStyle = "#2e7a4a"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(1.5, 1.5, w - 3, h - 3, 3)
+  ctx.stroke()
   // 海藻条（摇摆）
   for (let i = 0; i < 6; i++) {
     const x = 3 + (i / 5) * (w - 6)
     const sway = Math.sin(t * 2 + i * 0.9) * 3
-    ctx.strokeStyle = i % 2 ? "#1e5c38" : "#2a7a48"
+    ctx.strokeStyle = i % 2 ? "#2e7a48" : "#3a9a58"
     ctx.lineWidth = 2.5
     ctx.beginPath()
     ctx.moveTo(x, h - 1)

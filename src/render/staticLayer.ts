@@ -240,7 +240,8 @@ export function drawAo(
   ctx.globalAlpha = 1
 }
 
-/** 障碍本体（vine/stone/prism/coral，docs/09）——多层绘制：阴影/主色/高光 */
+/** 障碍本体（vine/stone/prism/coral，docs/09）——多层绘制：阴影/主色/高光
+ *  注意：switch 内禁止 return 退出——必须执行末尾 restore（docs/10 坑 23） */
 export function drawObstacleShape(
   ctx: CanvasRenderingContext2D,
   style: Theme["obstacleStyle"],
