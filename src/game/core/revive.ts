@@ -71,5 +71,35 @@ export function updateRevive(snakes: SnakeState[], dt: number): ReviveUpdate {
   return { gameOver, revive }
 }
 
+/** 随机安全复活点：距最近占用格 ≥ 2 的空格中随机（docs/13 第 2 点：不固定位置） */
+export function randomSafeCell(
+  map: MapData,
+  snakes: SnakeState[],
+  activeCells: Set<string>,
+  rng: () => number,
+): Cell | null {
+  const occupied = new Set(activeCells)
+  for (const s of snakes) {
+    for (const c of s.body) occupied.add(cellKey(c))
+  }
+  const candidates: Cell[] = []
+  for (let y = 0; y < map.grid.h; y++) {
+    for (let x = 0; x < map.grid.w; x++) {
+      const k = `${x},${y}`
+      if (occupied.has(k)) continue
+      // 距最近占用格 ≥ 2
+      let minD = Infinity
+      for (const k2 of occupied) {
+        const [ox, oy] = k2.split(",").map(Number)
+        const d = Math.abs(x - ox) + Math.abs(y - oy)
+        if (d < minD) minD = d
+      }
+      if (minD >= 2) candidates.push({ x, y })
+    }
+  }
+  if (candidates.length === 0) return safeRespawnCell(map, snakes, activeCells, rng)
+  return candidates[Math.floor(rng() * candidates.length)]
+}
+
 export const REVIVE_WAIT = REVIVE_WAIT_SECONDS
 export const INVINCIBLE = INVINCIBLE_SECONDS

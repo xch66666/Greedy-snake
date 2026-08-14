@@ -43,7 +43,7 @@ export function MapSelect(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 程序化缩略图（真实地图数据小样，docs/07 3）
+  // 程序化缩略图（真实地图数据小样，docs/07 3；静态层含 3 格边界带，裁地图区域）
   useEffect(() => {
     for (const map of MAPS) {
       const canvas = thumbRefs.current.get(map.id)
@@ -52,7 +52,8 @@ export function MapSelect(): React.JSX.Element {
       const layer = renderStaticLayer(map, theme)
       canvas.width = map.grid.w * CELL
       canvas.height = map.grid.h * CELL
-      canvas.getContext("2d")!.drawImage(layer, 0, 0)
+      const ctx = canvas.getContext("2d")!
+      ctx.drawImage(layer, 3 * CELL, 3 * CELL, map.grid.w * CELL, map.grid.h * CELL, 0, 0, canvas.width, canvas.height)
     }
   }, [])
 

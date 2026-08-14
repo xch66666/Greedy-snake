@@ -3,16 +3,16 @@
 // 纯 TS，无 DOM 依赖（可见性暂停由 UI 层调用 pause()）
 // ============================================================
 import type {
-  Difficulty, Direction, EngineAPI, EngineState, GameEvent, GameMode,
+  Cell, Difficulty, Direction, EngineAPI, EngineState, GameEvent, GameMode,
   MapData, PlayerId, SnakeState, Theme,
 } from "./core/types"
 import { DIFFICULTY_PRESETS, FOOD_COUNT, MAX_ACCUMULATED_MS, TICK_HZ } from "./core/constants"
 import { EventBus } from "./core/eventBus"
 import { createSnake, enqueueDir, hitsSelf, stepSnake } from "./core/snake"
 import { cellKey, generateFood, mulberry32 } from "./core/food"
-import { hitsAny, isWall, entityCells } from "./core/collision"
+import { hitsAny, isWall, entityCells, hitsStatic } from "./core/collision"
 import { applyEat } from "./core/scoring"
-import { safeRespawnCell, updateRevive, INVINCIBLE } from "./core/revive"
+import { updateRevive, INVINCIBLE, randomSafeCell } from "./core/revive"
 import { obstacleActiveCells } from "./core/obstacles"
 import { getMap, getTheme } from "./maps"
 
@@ -29,6 +29,8 @@ export interface EngineView {
   obstacleT: number // 动态障碍时间（渲染连续位置用）
   /** 开局倒计时剩余秒（0 = 已开始，docs/13 第 2 点） */
   countdown: number
+  /** 当前实际移动间隔（秒，含加速；渲染插值用，docs/13） */
+  moveInterval: number
   scores: Record<PlayerId, number>
   combos: Record<PlayerId, number>
   mode: GameMode
@@ -168,6 +170,7 @@ export class SnakeEngine implements EngineAPI {
       obstacleCells: this.map ? obstacleActiveCells(this.map, this.obstacleT) : new Set<string>(),
       obstacleT: this.obstacleT,
       countdown: this.startCountdown,
+      moveInterval: 1 / this.currentSpeed(),
       scores: this.scores,
       combos: this.combos,
       mode: this.mode,
@@ -344,11 +347,26 @@ export class SnakeEngine implements EngineAPI {
     const map = this.map
     if (!map) return
     const active = obstacleActiveCells(map, this.obstacleT)
-    const pos = safeRespawnCell(map, this.snakes, active, this.rng)
+    // 随机安全复活点（docs/13 第 2 点：不再固定位置）
+    const pos = randomSafeCell(map, this.snakes, active, this.rng)
     if (pos) {
-      snake.body = [pos]
-      snake.dir = "right"
-      snake.nextDir = "right"
+      // 保留死亡前一半长度（docs/13 第 2 点），随机方向向后延伸
+      const half = Math.max(1, Math.ceil(snake.body.length / 2))
+      const dirs: Direction[] = ["up", "down", "left", "right"]
+      const dir = dirs[Math.floor(this.rng() * dirs.length)]
+      const body: Cell[] = [pos]
+      for (let i = 1; i < half; i++) {
+        const c: Cell = {
+          x: pos.x - (dir === "left" ? 1 : dir === "right" ? -1 : 0) * i,
+          y: pos.y - (dir === "up" ? 1 : dir === "down" ? -1 : 0) * i,
+        }
+        if (c.x < 0 || c.y < 0 || c.x >= map.grid.w || c.y >= map.grid.h) break
+        if (hitsStatic(map, c) || active.has(cellKey(c))) break
+        body.push(c)
+      }
+      snake.body = body
+      snake.dir = dir
+      snake.nextDir = dir
     }
     snake.inputBuffer = []
     snake.growPending = 0

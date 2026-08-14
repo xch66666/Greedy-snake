@@ -102,9 +102,9 @@ export class Renderer {
 
     const t = view.elapsed
 
-    // ---- 相机与动态缩放（docs/11/13）----
-    const mapPxW = map.grid.w * CELL
-    const mapPxH = map.grid.h * CELL
+    // ---- 相机与动态缩放（docs/13：含 3 格边界带的世界范围）----
+    const mapPxW = (map.grid.w + 6) * CELL
+    const mapPxH = (map.grid.h + 6) * CELL
     // 目标视野：coop=两蛇包围盒→离散档位（40 或全图），solo=默认（docs/13 第 4 版）
     let targetView: ViewSize = { w: VIEW_W, h: VIEW_H }
     if (view.mode === "coop" && view.snakes.length === 2) {
@@ -178,8 +178,8 @@ export class Renderer {
     ctx.imageSmoothingEnabled = false
     ctx.translate(-Math.round(this.camX), -Math.round(this.camY))
 
-    // 静态层（全图，GPU 裁切视野）
-    ctx.drawImage(this.staticLayer!, 0, 0)
+    // 静态层（全图含边界带；静态层原点 = 世界(-3,-3)，docs/13 第 1 点）
+    ctx.drawImage(this.staticLayer!, -3 * CELL, -3 * CELL)
 
     // 震动（docs/02 3.3 死亡反馈；衰减加快，避免残留到复活，docs/13 修复）
     if (this.shake > 0) {
@@ -270,8 +270,9 @@ export class Renderer {
   ): void {
     const vw = this.canvas.width
     const vh = this.canvas.height
-    const mapPxW = map.grid.w * CELL
-    const mapPxH = map.grid.h * CELL
+    // 世界范围（地图 + 3 格边界带，docs/13 第 1 点）
+    const mapPxW = (map.grid.w + 6) * CELL
+    const mapPxH = (map.grid.h + 6) * CELL
     ctx.strokeStyle = theme.palette.accent
     ctx.lineWidth = 3
     ctx.globalAlpha = 0.9
@@ -449,15 +450,16 @@ export class Renderer {
       this.snakeAnims.set(snake.player, anim)
     }
 
-    // 插值推进（docs/05 1.1：两格间滑动）
+    // 插值推进（docs/05 1.1：两格间滑动；docs/13 修复：prevBody 插值完成前保持旧位置）
     const cur = snake.body
     const moved = anim.prevBody.length > 0 &&
       (cur[0].x !== anim.prevBody[0].x || cur[0].y !== anim.prevBody[0].y)
     if (moved) {
       anim.t = 0
     } else if (snake.phase !== "ghost") {
-      const preset = DIFFICULTY_PRESETS[view.difficulty]
-      anim.t = Math.min(1, anim.t + dt / (1 / preset.initialSpeed))
+      // 插值周期 = 引擎实际移动间隔（含加速，docs/13 与引擎同步）
+      const interval = view.moveInterval > 0 ? view.moveInterval : 1 / DIFFICULTY_PRESETS[view.difficulty].initialSpeed
+      anim.t = Math.min(1, anim.t + dt / interval)
     }
     // 头朝向平滑（docs/05 1.1）
     const target = DIR_ANGLE[snake.dir]
@@ -512,7 +514,10 @@ export class Renderer {
     this.drawHead(ctx, theme.snakeStyle.head, hpx, hpy, anim.angle, color, outline, t, u)
     ctx.restore()
 
-    anim.prevBody = cur.map((c) => ({ ...c }))
+    // 帧尾：插值完成后才同步 prevBody（docs/13 修复"跳格"：移动后旧位置保持为插值起点）
+    if (anim.t >= 1 && !moved) {
+      anim.prevBody = cur.map((c) => ({ ...c }))
+    }
   }
 
   private drawPattern(

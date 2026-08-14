@@ -156,6 +156,8 @@ describe("SnakeEngine", () => {
     circle(engine, 9.6) // 复活于 ~13.5s（3.5 撞墙 + 10s），保护期 15.5s 内断言
     const s1 = engine.getView().snakes[0]
     expect(s1.phase).toBe("invincible")
+    // 复活保留一半长度（docs/13 第 2 点）：初始 3 节 → ceil(3/2)=2 节
+    expect(s1.body.length).toBe(2)
     expect(events.some((e) => e.type === "revive" && e.player === 1)).toBe(true)
     expect(events.some((e) => e.type === "reviveCountdown" && e.player === 1)).toBe(true)
     engine.destroy()

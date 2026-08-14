@@ -20,13 +20,23 @@ export function renderStaticLayer(
   map: MapData,
   theme: Theme,
 ): HTMLCanvasElement {
+  // 边界带：外扩 3 格（docs/13 第 1 点：地图外有树墙/石墙等实体边界）
+  const BORDER = 3
   const w = map.grid.w * CELL
   const h = map.grid.h * CELL
   const canvas = document.createElement("canvas")
-  canvas.width = w
-  canvas.height = h
+  canvas.width = (map.grid.w + BORDER * 2) * CELL
+  canvas.height = (map.grid.h + BORDER * 2) * CELL
   const ctx = canvas.getContext("2d")!
   const rng = mulberry32(map.decorSeed)
+
+  // 边界带底色（比地图更深）
+  ctx.fillStyle = shade(theme.palette.bg, 0.5)
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // 地图内容绘制（偏移到边界带内侧）
+  ctx.save()
+  ctx.translate(BORDER * CELL, BORDER * CELL)
 
   // 底色
   ctx.fillStyle = theme.palette.bg
@@ -99,7 +109,105 @@ export function renderStaticLayer(
   ctx.fillRect(0, h - 5, w, 2)
   ctx.globalAlpha = 1
 
+  ctx.restore() // 结束地图内容（translate）
+
+  // ---- 边界带装饰（docs/13 第 1 点：地图外 3 格，主题化实体边界）----
+  drawBorderBand(ctx, map, theme, BORDER)
+
   return canvas
+}
+
+/** 颜色加深（边界带底色） */
+function shade(hex: string, f: number): string {
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * f)
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * f)
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * f)
+  return `rgb(${r},${g},${b})`
+}
+
+/** 边界带：外圈 3 格按主题画实体边界（树墙/石墙/棱柱列/暗礁，docs/13 第 1 点） */
+function drawBorderBand(
+  ctx: CanvasRenderingContext2D,
+  map: MapData,
+  theme: Theme,
+  border: number,
+): void {
+  const W = map.grid.w + border * 2
+  const H = map.grid.h + border * 2
+  const isBorder = (gx: number, gy: number): boolean =>
+    gx < border || gy < border || gx >= W - border || gy >= H - border
+  const style = theme.obstacleStyle
+  const outline = theme.palette.outline
+  for (let gy = 0; gy < H; gy++) {
+    for (let gx = 0; gx < W; gx++) {
+      if (!isBorder(gx, gy)) continue
+      const px = gx * CELL
+      const py = gy * CELL
+      switch (style) {
+        case "vine": {
+          // 丛林：树墙（深绿底 + 小树）
+          ctx.fillStyle = "#0a2014"
+          ctx.fillRect(px, py, CELL, CELL)
+          ctx.fillStyle = "#6b4a2f"
+          ctx.fillRect(px + 6, py + 9, 4, 7)
+          ctx.fillStyle = theme.palette.obstacle
+          ctx.beginPath()
+          ctx.arc(px + 8, py + 6, 6, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.fillStyle = theme.palette.snakeA
+          ctx.globalAlpha = 0.7
+          ctx.beginPath()
+          ctx.arc(px + 7, py + 5, 3, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.globalAlpha = 1
+          break
+        }
+        case "stone": {
+          // 地牢：石砖墙（满格）
+          ctx.fillStyle = "#2a2218"
+          ctx.fillRect(px, py, CELL, CELL)
+          ctx.fillStyle = theme.palette.obstacle
+          ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2)
+          ctx.fillStyle = outline
+          ctx.fillRect(px + 1, py + CELL / 2, CELL - 2, 1)
+          ctx.fillRect(px + CELL / 2, py + 1, 1, CELL / 2 - 1)
+          ctx.fillStyle = "rgba(255,255,255,0.12)"
+          ctx.fillRect(px + 2, py + 2, CELL - 4, 2)
+          break
+        }
+        case "prism": {
+          // 几何：暗网格 + 能量竖线
+          ctx.fillStyle = "#10131f"
+          ctx.fillRect(px, py, CELL, CELL)
+          ctx.strokeStyle = "rgba(77,166,255,0.35)"
+          ctx.lineWidth = 1
+          ctx.strokeRect(px + 0.5, py + 0.5, CELL - 1, CELL - 1)
+          ctx.fillStyle = "rgba(77,166,255,0.5)"
+          ctx.fillRect(px + 7, py + 2, 2, CELL - 4)
+          break
+        }
+        case "coral": {
+          // 深海：暗礁
+          ctx.fillStyle = "#061224"
+          ctx.fillRect(px, py, CELL, CELL)
+          ctx.fillStyle = "#14304f"
+          ctx.beginPath()
+          ctx.roundRect(px + 3, py + 4, 10, 10, 4)
+          ctx.fill()
+          ctx.fillStyle = theme.palette.obstacle
+          ctx.globalAlpha = 0.6
+          ctx.beginPath()
+          ctx.arc(px + 5, py + 6, 2.5, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.beginPath()
+          ctx.arc(px + 11, py + 8, 2.5, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.globalAlpha = 1
+          break
+        }
+      }
+    }
+  }
 }
 
 // ---------- 底纹 ----------
