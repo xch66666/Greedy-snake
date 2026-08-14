@@ -137,7 +137,7 @@ export interface EngineAPI {
   resume(): void
   restart(): void
   destroy(): void
-  on(ev: GameEvent, handler: (e: GameEvent) => void): () => void
+  on(handler: (e: GameEvent) => void): () => void
 }
 
 /** 难度预设（docs/03 第 4 节，数值阶段 5 调优回填） */

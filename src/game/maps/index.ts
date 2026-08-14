@@ -25,3 +25,17 @@ export function getTheme(id: string): Theme | undefined {
 export function themeForMap(map: MapData): Theme | undefined {
   return getTheme(map.themeId)
 }
+
+/** 动态注册（测试/未来自定义地图用）；id 冲突时覆盖 */
+export function registerMap(map: MapData): void {
+  const i = MAPS.findIndex((m) => m.id === map.id)
+  if (i >= 0) MAPS[i] = map
+  else MAPS.push(map)
+}
+
+/** 动态注册主题 */
+export function registerTheme(theme: Theme): void {
+  const i = THEMES.findIndex((t) => t.id === theme.id)
+  if (i >= 0) THEMES[i] = theme
+  else THEMES.push(theme)
+}
