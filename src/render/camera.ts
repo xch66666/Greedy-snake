@@ -60,7 +60,7 @@ export function centerOffset(
   }
 }
 
-/** 相机边界 clamp（视野不超出地图；viewW/viewH 为当前视野格数，docs/13 修复） */
+/** 相机边界 clamp（视野不超出世界；minX/minY 支持负偏移——边界带，docs/13 修复） */
 export function clampCam(
   camX: number,
   camY: number,
@@ -68,12 +68,14 @@ export function clampCam(
   mapPxH: number,
   viewW = VIEW_W,
   viewH = VIEW_H,
+  minX = 0,
+  minY = 0,
 ): { x: number; y: number } {
-  const maxX = Math.max(0, mapPxW - viewW * CELL)
-  const maxY = Math.max(0, mapPxH - viewH * CELL)
+  const maxX = Math.max(minX, mapPxW - viewW * CELL)
+  const maxY = Math.max(minY, mapPxH - viewH * CELL)
   return {
-    x: Math.min(Math.max(0, camX), maxX),
-    y: Math.min(Math.max(0, camY), maxY),
+    x: Math.min(Math.max(minX, camX), maxX),
+    y: Math.min(Math.max(minY, camY), maxY),
   }
 }
 

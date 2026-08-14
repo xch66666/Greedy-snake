@@ -18,7 +18,10 @@ const DIR_ANGLE: Record<Direction, number> = { right: 0, down: Math.PI / 2, left
 
 /** 蛇插值状态（渲染层私有） */
 interface SnakeAnim {
-  prevBody: Cell[]
+  /** 插值起点（移动前位置；插值完成前保持，docs/13 修复尾巴错位） */
+  startPos: Cell[]
+  /** 上一帧位置（移动判定与起点来源） */
+  lastPos: Cell[]
   t: number
   angle: number
   scale: number // 死亡/复活动画
@@ -169,7 +172,8 @@ export class Renderer {
       return { x: tx - this.viewW * CELL / 2, y: ty - this.viewH * CELL / 2 }
     }
     const target = follow()
-    const cam = clampCam(target.x, target.y, mapPxW, mapPxH, this.viewW, this.viewH)
+    // 相机 clamp：允许滚入边界带（负偏移 -3 格，docs/13 修复左/上边界不可见）
+    const cam = clampCam(target.x, target.y, mapPxW, mapPxH, this.viewW, this.viewH, -3 * CELL, -3 * CELL)
     // 相机快速同步（dt*10）：缩放期间减少与视野变化的相位差（docs/13 震动修复）
     this.camX += (cam.x - this.camX) * Math.min(1, dt * 10)
     this.camY += (cam.y - this.camY) * Math.min(1, dt * 10)
@@ -262,7 +266,7 @@ export class Renderer {
     }
   }
 
-  /** 地图边界线：视野贴地图边缘时在对应视野边缘画亮线（docs/13 第 1 点） */
+  /** 地图边界线：视野贴世界外沿（含边界带）时在对应视野边缘画亮线（docs/13） */
   private drawMapBorder(
     ctx: CanvasRenderingContext2D,
     theme: Theme,
@@ -270,17 +274,19 @@ export class Renderer {
   ): void {
     const vw = this.canvas.width
     const vh = this.canvas.height
-    // 世界范围（地图 + 3 格边界带，docs/13 第 1 点）
-    const mapPxW = (map.grid.w + 6) * CELL
-    const mapPxH = (map.grid.h + 6) * CELL
+    // 世界范围：地图 + 左右各 3 格边界带（docs/13）
+    const leftEdge = -3 * CELL
+    const topEdge = -3 * CELL
+    const rightEdge = (map.grid.w + 3) * CELL
+    const bottomEdge = (map.grid.h + 3) * CELL
     ctx.strokeStyle = theme.palette.accent
     ctx.lineWidth = 3
     ctx.globalAlpha = 0.9
     ctx.beginPath()
-    if (this.camX <= 1) { ctx.moveTo(1.5, 0); ctx.lineTo(1.5, vh) }
-    if (this.camX + vw >= mapPxW - 1) { ctx.moveTo(vw - 1.5, 0); ctx.lineTo(vw - 1.5, vh) }
-    if (this.camY <= 1) { ctx.moveTo(0, 1.5); ctx.lineTo(vw, 1.5) }
-    if (this.camY + vh >= mapPxH - 1) { ctx.moveTo(0, vh - 1.5); ctx.lineTo(vw, vh - 1.5) }
+    if (this.camX <= leftEdge + 1) { const x = leftEdge - this.camX + 1.5; ctx.moveTo(x, 0); ctx.lineTo(x, vh) }
+    if (this.camX + vw >= rightEdge - 1) { const x = rightEdge - this.camX - 1.5; ctx.moveTo(x, 0); ctx.lineTo(x, vh) }
+    if (this.camY <= topEdge + 1) { const y = topEdge - this.camY + 1.5; ctx.moveTo(0, y); ctx.lineTo(vw, y) }
+    if (this.camY + vh >= bottomEdge - 1) { const y = bottomEdge - this.camY - 1.5; ctx.moveTo(0, y); ctx.lineTo(vw, y) }
     ctx.stroke()
     ctx.globalAlpha = 1
   }
@@ -446,21 +452,29 @@ export class Renderer {
   ): void {
     let anim = this.snakeAnims.get(snake.player)
     if (!anim) {
-      anim = { prevBody: snake.body.map((c) => ({ ...c })), t: 1, angle: DIR_ANGLE[snake.dir], scale: 1 }
+      const body = snake.body.map((c) => ({ ...c }))
+      anim = { startPos: body, lastPos: body, t: 1, angle: DIR_ANGLE[snake.dir], scale: 1 }
       this.snakeAnims.set(snake.player, anim)
     }
 
-    // 插值推进（docs/05 1.1：两格间滑动；docs/13 修复：prevBody 插值完成前保持旧位置）
+    // 插值推进（docs/05 1.1：两格间滑动）
+    // 起点 = 移动前位置（lastPos），插值完成前保持；二次移动时起点 = 上次移动后位置（docs/13 修复尾巴错位）
     const cur = snake.body
-    const moved = anim.prevBody.length > 0 &&
-      (cur[0].x !== anim.prevBody[0].x || cur[0].y !== anim.prevBody[0].y)
+    const moved = anim.lastPos.length > 0 &&
+      (cur[0].x !== anim.lastPos[0].x || cur[0].y !== anim.lastPos[0].y)
     if (moved) {
+      anim.startPos = anim.lastPos // 起点 = 移动前位置
       anim.t = 0
-    } else if (snake.phase !== "ghost") {
+    } else if (anim.t < 1 && snake.phase !== "ghost") {
       // 插值周期 = 引擎实际移动间隔（含加速，docs/13 与引擎同步）
       const interval = view.moveInterval > 0 ? view.moveInterval : 1 / DIFFICULTY_PRESETS[view.difficulty].initialSpeed
       anim.t = Math.min(1, anim.t + dt / interval)
+      if (anim.t >= 1) anim.startPos = cur // 插值完成 → 同步起点
+    } else {
+      anim.startPos = cur // 空闲/幽灵：起点跟随
     }
+    // 帧尾：记录上一帧位置（移动判定与下次移动的起点）
+    anim.lastPos = cur.map((c) => ({ ...c }))
     // 头朝向平滑（docs/05 1.1）
     const target = DIR_ANGLE[snake.dir]
     let diff = target - anim.angle
@@ -488,7 +502,7 @@ export class Renderer {
     ctx.save()
     ctx.globalAlpha = alpha
     for (let i = len - 1; i >= 0; i--) {
-      const start = anim.prevBody[i] ?? cur[i]
+      const start = anim.startPos[i] ?? cur[i]
       const px = (start.x + (cur[i].x - start.x) * ease) * CELL + CELL / 2
       const py = (start.y + (cur[i].y - start.y) * ease) * CELL + CELL / 2 - (i === 0 ? lift : 0)
       ctx.fillStyle = outline
@@ -513,11 +527,6 @@ export class Renderer {
     const hpy = (headPos.y + (cur[0].y - headPos.y) * ease) * CELL + CELL / 2 - lift
     this.drawHead(ctx, theme.snakeStyle.head, hpx, hpy, anim.angle, color, outline, t, u)
     ctx.restore()
-
-    // 帧尾：插值完成后才同步 prevBody（docs/13 修复"跳格"：移动后旧位置保持为插值起点）
-    if (anim.t >= 1 && !moved) {
-      anim.prevBody = cur.map((c) => ({ ...c }))
-    }
   }
 
   private drawPattern(
