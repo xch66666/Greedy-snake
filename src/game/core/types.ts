@@ -109,6 +109,12 @@ export interface Theme {
     dur: number
   }
   foodStyle: "berry" | "gold" | "energy" | "pearl" // docs/09 食物造型
+  /** 贴图模式（可选，docs/02 素材试点）：地表用 tileset 平铺，替代程序化底纹 */
+  sprites?: {
+    sheet: "roguelike" // 素材表标识（src/render/sprites.ts 注册）
+    /** 地表瓦片坐标（16×16 格），平铺时按 decorSeed 随机取变体 */
+    bgTiles: { x: number; y: number }[]
+  }
   audio: {
     bgm: { tempo: number; scale: string }
     ambient: "insects" | "dungeon" | "pulse" | "abyss"

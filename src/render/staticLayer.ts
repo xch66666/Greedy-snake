@@ -6,6 +6,7 @@ import type { MapData, Theme } from "../game/core/types"
 import { CELL } from "./camera"
 import { mulberry32 } from "../game/core/food"
 import { drawEntity, drawEntityAo } from "./entities"
+import { drawTile, getSheet } from "./sprites"
 
 /** 有序抖动点阵（4×4 Bayer，消除色带，docs/02 3.1） */
 const BAYER = [
@@ -31,8 +32,27 @@ export function renderStaticLayer(
   ctx.fillStyle = theme.palette.bg
   ctx.fillRect(0, 0, w, h)
 
-  // ---- 主题底纹 ----
-  drawTexture(ctx, theme, w, h, rng)
+  // ---- 地表：贴图平铺（素材模式，docs/02）或程序化底纹 ----
+  const sheet = theme.sprites ? getSheet(theme.sprites.sheet) : null
+  if (sheet && theme.sprites) {
+    // Kenney 草地砖平铺：按 decorSeed 随机取变体，相邻格避免同变体（星露谷式地表纹理）
+    const tiles = theme.sprites.bgTiles
+    const rng = mulberry32(map.decorSeed * 131 + 17)
+    const pick = (gx: number, gy: number): { x: number; y: number } => {
+      const a = Math.floor(rng() * tiles.length)
+      const b = Math.floor(rng() * tiles.length)
+      const useA = (a + gy) % tiles.length !== (b + gx) % tiles.length ? a : b
+      return tiles[useA]
+    }
+    for (let gy = 0; gy < map.grid.h; gy++) {
+      for (let gx = 0; gx < map.grid.w; gx++) {
+        const t = pick(gx, gy)
+        drawTile(ctx, sheet, t.x, t.y, gx * CELL, gy * CELL)
+      }
+    }
+  } else {
+    drawTexture(ctx, theme, w, h, rng)
+  }
 
   // ---- 网格线（弱化：主题色半透明，docs/02 3.2）----
   ctx.strokeStyle = theme.palette.grid

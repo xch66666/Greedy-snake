@@ -22,7 +22,7 @@ export function entityBounds(e: ObstacleEntity): { x: number; y: number; w: numb
   }
 }
 
-/** 接触阴影（整体底部） */
+/** 接触阴影（整体底部）+ 底座填充（消灭"看不见的障碍点"，docs/10 坑 20） */
 export function drawEntityAo(
   ctx: CanvasRenderingContext2D,
   e: ObstacleEntity,
@@ -30,12 +30,19 @@ export function drawEntityAo(
 ): void {
   const b = entityBounds(e)
   const a = theme.texture.ao
-  if (a <= 0) return
+  // 底座填充：覆盖全部碰撞格，保证碰撞区可见（像素游戏标准做法）
   ctx.fillStyle = "#000000"
-  ctx.globalAlpha = a * 0.45
+  ctx.globalAlpha = 0.28
   ctx.beginPath()
-  ctx.ellipse(b.x + b.w / 2, b.y + b.h - 1, b.w * 0.42, 2.5, 0, 0, Math.PI * 2)
+  ctx.roundRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 4)
   ctx.fill()
+  // 椭圆底部阴影
+  if (a > 0) {
+    ctx.globalAlpha = a * 0.45
+    ctx.beginPath()
+    ctx.ellipse(b.x + b.w / 2, b.y + b.h - 1, b.w * 0.42, 2.5, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
   ctx.globalAlpha = 1
 }
 
