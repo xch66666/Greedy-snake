@@ -35,7 +35,7 @@ export function renderStaticLayer(
   // ---- 地表：贴图平铺（素材模式，docs/02）或程序化底纹 ----
   const sheet = theme.sprites ? getSheet(theme.sprites.sheet) : null
   if (sheet && theme.sprites) {
-    // Kenney 草地砖平铺：按 decorSeed 随机取变体，相邻格避免同变体（星露谷式地表纹理）
+    // 草地砖平铺：按 decorSeed 随机取变体，相邻格避免同变体
     const tiles = theme.sprites.bgTiles
     const rng = mulberry32(map.decorSeed * 131 + 17)
     const pick = (gx: number, gy: number): { x: number; y: number } => {
@@ -50,6 +50,11 @@ export function renderStaticLayer(
         drawTile(ctx, sheet, t.x, t.y, gx * CELL, gy * CELL)
       }
     }
+    // 地表压暗：叠加半透明主题深色，保证蛇/障碍/食物清晰（用户反馈"太花看不清"）
+    ctx.fillStyle = theme.palette.bg
+    ctx.globalAlpha = 0.5
+    ctx.fillRect(0, 0, w, h)
+    ctx.globalAlpha = 1
   } else {
     drawTexture(ctx, theme, w, h, rng)
   }

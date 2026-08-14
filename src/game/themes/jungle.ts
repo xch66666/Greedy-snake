@@ -31,15 +31,12 @@ export const jungleTheme: Theme = {
   anim: { eatParticle: "leaf", dur: 300 },
   foodStyle: "berry", // docs/09：红浆果
   // 贴图试点（docs/02 素材模式）：Kenney CC0 草地砖平铺地表
-  // 坐标来自 roguelikeSheet.png：纯草(11,11) + 草变体(0,7)(1,7)(3,7)(0,10) + 草土过渡(19,12)
+  // 只保留低对比变体（纯草 + 1 变体 + 过渡），避免地表"太花"（用户反馈）
   sprites: {
     sheet: "roguelike",
     bgTiles: [
       { x: 11, y: 11 },
       { x: 0, y: 7 },
-      { x: 1, y: 7 },
-      { x: 3, y: 7 },
-      { x: 0, y: 10 },
       { x: 19, y: 12 },
     ],
   },
