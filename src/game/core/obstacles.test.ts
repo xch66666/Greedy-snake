@@ -8,7 +8,7 @@ import type { DynamicObstacle } from "./types"
 function makeMap(obs: DynamicObstacle[]) {
   return {
     id: "t", name: "t", grid: { w: 16, h: 12 }, spawn: { x: 1, y: 1 },
-    staticObstacles: [], dynamicObstacles: obs, themeId: "t", decorSeed: 1,
+    staticObstacles: [], entities: [], dynamicObstacles: obs, themeId: "t", decorSeed: 1,
   }
 }
 

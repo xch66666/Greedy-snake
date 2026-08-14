@@ -5,6 +5,7 @@
 import type { MapData, Theme } from "../game/core/types"
 import { CELL } from "./camera"
 import { mulberry32 } from "../game/core/food"
+import { drawEntity, drawEntityAo } from "./entities"
 
 /** 有序抖动点阵（4×4 Bayer，消除色带，docs/02 3.1） */
 const BAYER = [
@@ -53,6 +54,12 @@ export function renderStaticLayer(
   for (const c of map.staticObstacles) {
     drawAo(ctx, c.x * CELL, c.y * CELL, theme)
     drawObstacleShape(ctx, theme.obstacleStyle, c.x * CELL, c.y * CELL, theme, 0)
+  }
+
+  // ---- 复合障碍物（多格整体绘制，docs/09）----
+  for (const e of map.entities) {
+    drawEntityAo(ctx, e, theme)
+    drawEntity(ctx, e, theme, 0)
   }
 
   // ---- 边框（docs/09 各图 border 色 + 硬阴影）----

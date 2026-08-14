@@ -37,6 +37,30 @@ export interface DynamicObstacle {
   target?: Cell
 }
 
+/** 复合障碍物形态（docs/09：多格整体障碍，2~3 种/图） */
+export type ObstacleKind =
+  | "tree"        // 大树 2×2（丛林）
+  | "boulder"     // 巨石 2×1（丛林）
+  | "vinewall"    // 藤蔓墙 3×1（丛林）
+  | "pillar"      // 石柱 1×2（地牢）
+  | "altar"       // 祭坛 2×2（地牢）
+  | "cage"        // 铁笼 2×2（地牢）
+  | "prismBig"    // 大型棱柱 2×2（几何）
+  | "obelisk"     // 方尖碑 1×2（几何）
+  | "ring"        // 环形门 3×2（几何）
+  | "reef"        // 珊瑚礁 2×2（深海）
+  | "wreck"       // 沉船残骸 3×2（深海）
+  | "anemone"     // 海葵丛 2×1（深海）
+
+/** 复合障碍物实体：由多个格子组成一个整体（docs/09 网格升级需求） */
+export interface ObstacleEntity {
+  id: string
+  kind: ObstacleKind
+  origin: Cell // 锚点（左上角）
+  /** 相对 origin 的占格（含 {0,0}），构成整体形状 */
+  shape: Cell[]
+}
+
 /** 地图数据（纯数据，不包含任何绘制信息，docs/02 第 7 节） */
 export interface MapData {
   id: string
@@ -44,6 +68,8 @@ export interface MapData {
   grid: { w: number; h: number }
   spawn: { x: number; y: number }
   staticObstacles: Cell[]
+  /** 复合障碍物（多格整体，docs/09：每图 2~3 种形态） */
+  entities: ObstacleEntity[]
   dynamicObstacles: DynamicObstacle[]
   themeId: string
   decorSeed: number

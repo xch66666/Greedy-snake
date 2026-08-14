@@ -15,23 +15,27 @@ describe("collision", () => {
     expect(isWall({ x: 15, y: 11 }, 16, 12)).toBe(false)
   })
 
-  it("hitsStatic：命中静态障碍", () => {
-    // 丛林地图静态障碍 (1,14)
-    expect(hitsStatic(jungleMap, { x: 1, y: 14 })).toBe(true)
-    expect(hitsStatic(jungleMap, { x: 2, y: 14 })).toBe(false)
+  it("hitsStatic：命中静态障碍与复合实体", () => {
+    // 丛林地图：静态单格 (12,16) + 复合实体树 tree-0 (4,13) + 藤蔓墙 vinewall-0 (2,8)
+    expect(hitsStatic(jungleMap, { x: 12, y: 16 })).toBe(true)
+    expect(hitsStatic(jungleMap, { x: 4, y: 13 })).toBe(true) // 树冠格
+    expect(hitsStatic(jungleMap, { x: 5, y: 13 })).toBe(true) // 树冠格
+    expect(hitsStatic(jungleMap, { x: 2, y: 8 })).toBe(true) // 藤蔓墙
+    expect(hitsStatic(jungleMap, { x: 13, y: 16 })).toBe(false)
+    expect(hitsStatic(jungleMap, { x: 4, y: 12 })).toBe(false)
   })
 
   it("hitsDynamic：命中动态障碍占格", () => {
-    const active = new Set(["4,9"]) // 丛林动态障碍 (4,9) pulse
-    expect(hitsDynamic(active, { x: 4, y: 9 })).toBe(true)
-    expect(hitsDynamic(active, { x: 3, y: 9 })).toBe(false)
+    const active = new Set(["5,7"]) // 丛林动态障碍 (5,7) pulse
+    expect(hitsDynamic(active, { x: 5, y: 7 })).toBe(true)
+    expect(hitsDynamic(active, { x: 4, y: 7 })).toBe(false)
   })
 
   it("hitsAny：综合判定（墙/静态/动态）", () => {
-    const active = new Set(["4,9"])
+    const active = new Set(["5,7"])
     expect(hitsAny(jungleMap, active, { x: -1, y: 5 })).toBe(true) // 墙
-    expect(hitsAny(jungleMap, active, { x: 1, y: 14 })).toBe(true) // 静态
-    expect(hitsAny(jungleMap, active, { x: 4, y: 9 })).toBe(true) // 动态
+    expect(hitsAny(jungleMap, active, { x: 12, y: 16 })).toBe(true) // 静态
+    expect(hitsAny(jungleMap, active, { x: 5, y: 7 })).toBe(true) // 动态
     expect(hitsAny(jungleMap, active, { x: 12, y: 8 })).toBe(false) // 空
   })
 })

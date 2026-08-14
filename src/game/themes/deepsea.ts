@@ -18,7 +18,7 @@ export const deepseaTheme: Theme = {
     uiText: "#d8ecff",
   },
   shadow: { offset: 4, color: "#04101f" },
-  radius: 3,
+  radius: 4,
   texture: { base: "wave", dither: true, ao: 0.6 },
   bgDecor: [
     { kind: "bubble", count: 18, periodMin: 4, periodMax: 8 },

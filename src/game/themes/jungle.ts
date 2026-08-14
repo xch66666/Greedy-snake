@@ -18,7 +18,7 @@ export const jungleTheme: Theme = {
     uiText: "#e8f5e9",
   },
   shadow: { offset: 4, color: "#06281a" },
-  radius: 3,
+  radius: 4,
   texture: { base: "leaf", dither: true, ao: 0.6 },
   bgDecor: [
     { kind: "firefly", count: 12, periodMin: 3, periodMax: 5 },

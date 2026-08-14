@@ -10,7 +10,7 @@ import { DIFFICULTY_PRESETS, FOOD_COUNT, MAX_ACCUMULATED_MS, TICK_HZ } from "./c
 import { EventBus } from "./core/eventBus"
 import { createSnake, enqueueDir, hitsSelf, stepSnake } from "./core/snake"
 import { cellKey, generateFood, mulberry32 } from "./core/food"
-import { hitsAny, isWall } from "./core/collision"
+import { hitsAny, isWall, entityCells } from "./core/collision"
 import { applyEat } from "./core/scoring"
 import { safeRespawnCell, updateRevive, INVINCIBLE } from "./core/revive"
 import { obstacleActiveCells } from "./core/obstacles"
@@ -304,6 +304,7 @@ export class SnakeEngine implements EngineAPI {
       for (const s of this.snakes) for (const c of s.body) occupied.add(cellKey(c))
       for (const f of this.foods) occupied.add(cellKey(f))
       for (const o of map.staticObstacles) occupied.add(cellKey(o))
+      for (const k of entityCells(map)) occupied.add(k) // 复合障碍
       for (const k of obstacleActiveCells(map, this.obstacleT)) occupied.add(k)
       const f = generateFood(map.grid.w, map.grid.h, occupied, this.rng)
       if (!f) break // 全满：胜利条件（本期不处理，视为无食物可吃）

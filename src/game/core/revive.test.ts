@@ -52,7 +52,7 @@ describe("revive", () => {
   it("安全复活点：远离占用格", () => {
     const map = {
       id: "t", name: "t", grid: { w: 8, h: 8 }, spawn: { x: 1, y: 1 },
-      staticObstacles: [], dynamicObstacles: [], themeId: "t", decorSeed: 1,
+      staticObstacles: [], entities: [], dynamicObstacles: [], themeId: "t", decorSeed: 1,
     }
     const s = createSnake(1, { x: 1, y: 1 }, "right")
     const pos = safeRespawnCell(map, [s], new Set(), rng)

@@ -18,7 +18,7 @@ export const dungeonTheme: Theme = {
     uiText: "#d8cfc0",
   },
   shadow: { offset: 4, color: "#0d0906" },
-  radius: 3,
+  radius: 4,
   texture: { base: "stone", dither: true, ao: 0.8 },
   bgDecor: [
     { kind: "torch", count: 6, periodMin: 0.7, periodMax: 0.9 },

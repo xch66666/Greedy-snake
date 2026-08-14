@@ -13,7 +13,7 @@ const PALETTE_SLOTS = [
 
 /** 全局风格量化值（docs/02 1.4，改动必须先改文档） */
 export const STYLE_RULES = {
-  radius: 3, // 12px 格画布圆角（docs/09 网格升级后）
+  radius: 4, // 16px 格画布圆角（docs/09：与星露谷 16px tile 同规格）
   shadowOffset: 4,
   animDurMin: 150,
   animDurMax: 450,
@@ -36,13 +36,27 @@ export function validateMap(map: MapData): string[] {
   if (!THEMES.some((t) => t.id === map.themeId)) e.push(`${tag} themeId 不存在: ${map.themeId}`)
   if (typeof map.decorSeed !== "number") e.push(`${tag} decorSeed 缺失`)
 
-  // 障碍重叠检查（静态+动态 动态按 cell 判定）
+  // 障碍重叠检查（静态+复合+动态）
   const occupied = new Set<string>()
   for (const c of map.staticObstacles) {
     if (!inGrid(c)) { e.push(`${tag} 静态障碍越界 ${JSON.stringify(c)}`); continue }
     const k = `${c.x},${c.y}`
     if (occupied.has(k)) e.push(`${tag} 静态障碍重叠 ${k}`)
     occupied.add(k)
+  }
+  // 复合障碍：shape 至少含 {0,0}、不越界、不重叠、id 唯一
+  const entityIds = new Set<string>()
+  for (const ent of map.entities) {
+    if (entityIds.has(ent.id)) e.push(`${tag} 实体 id 重复: ${ent.id}`)
+    entityIds.add(ent.id)
+    if (!ent.shape.some((s) => s.x === 0 && s.y === 0)) e.push(`${tag} 实体 ${ent.id} shape 缺少锚点 {0,0}`)
+    for (const s of ent.shape) {
+      const abs = { x: ent.origin.x + s.x, y: ent.origin.y + s.y }
+      if (!inGrid(abs)) e.push(`${tag} 实体 ${ent.id} 越界 ${JSON.stringify(abs)}`)
+      const k = `${abs.x},${abs.y}`
+      if (occupied.has(k)) e.push(`${tag} 实体 ${ent.id} 重叠 ${k}`)
+      occupied.add(k)
+    }
   }
   for (const d of map.dynamicObstacles) {
     if (!inGrid(d.cell)) e.push(`${tag} 动态障碍越界 ${JSON.stringify(d.cell)}`)

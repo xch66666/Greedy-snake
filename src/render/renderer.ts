@@ -219,11 +219,11 @@ export class Renderer {
       const py = (start.y + (cur[i].y - start.y) * ease) * CELL + CELL / 2 - (i === 0 ? lift : 0)
       ctx.fillStyle = outline
       ctx.beginPath()
-      ctx.roundRect(px - size / 2 + 1, py - size / 2 + 1, size, size, 3)
+      ctx.roundRect(px - size / 2 + 1, py - size / 2 + 1, size, size, 4)
       ctx.fill() // 硬阴影
       ctx.fillStyle = color
       ctx.beginPath()
-      ctx.roundRect(px - size / 2, py - size / 2, size, size, 3)
+      ctx.roundRect(px - size / 2, py - size / 2, size, size, 4)
       ctx.fill()
       // 高光（立体感，docs/09 精细度升级）
       ctx.fillStyle = "rgba(255,255,255,0.18)"
@@ -284,7 +284,7 @@ export class Renderer {
           const f = 1 - i / len
           ctx.fillStyle = `rgba(255,255,255,${0.15 * f})`
           ctx.beginPath()
-          ctx.roundRect(px - size / 2, py - size / 2, size, size, 3)
+          ctx.roundRect(px - size / 2, py - size / 2, size, size, 4)
           ctx.fill()
         }
         break
