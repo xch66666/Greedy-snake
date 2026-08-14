@@ -30,9 +30,9 @@ export function drawEntityAo(
 ): void {
   const b = entityBounds(e)
   const a = theme.texture.ao
-  // 底座填充：覆盖全部碰撞格，保证碰撞区可见（像素游戏标准做法）
+  // 底座填充：覆盖全部碰撞格，保证碰撞区可见（淡化为 0.2，避免"斑驳"）
   ctx.fillStyle = "#000000"
-  ctx.globalAlpha = 0.28
+  ctx.globalAlpha = 0.2
   ctx.beginPath()
   ctx.roundRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 4)
   ctx.fill()

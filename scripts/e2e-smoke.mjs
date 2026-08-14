@@ -23,9 +23,9 @@ const SHOTS = "design/screenshots"
 fs.mkdirSync(SHOTS, { recursive: true })
 
 // 主题预期背景色（docs/09 色板，16 级分桶近似）
-// 丛林：Kenney 草地砖 + 50% 主题深色压暗（用户反馈"太花"后调整为低对比深草地）
+// 丛林：素材贴图已回退（用户两次反馈太花），程序化深色底纹 #0e2a1a
 const THEME_BG = {
-  jungle: [3, 6, 4],   // 压暗草地（实测主色）
+  jungle: [0, 2, 1],   // #0e2a1a
   dungeon: [1, 1, 0],   // #1a140f
   geometry: [1, 1, 2],  // #191c2b
   deepsea: [0, 1, 3],   // #0a1e3c

@@ -59,9 +59,9 @@ export function renderStaticLayer(
     drawTexture(ctx, theme, w, h, rng)
   }
 
-  // ---- 网格线（弱化：主题色半透明，docs/02 3.2）----
+  // ---- 网格线（弱化：低对比，docs/02 3.2；用户反馈"杂乱"后从 0.35 降至 0.18）----
   ctx.strokeStyle = theme.palette.grid
-  ctx.globalAlpha = 0.35
+  ctx.globalAlpha = 0.18
   ctx.lineWidth = 1
   ctx.beginPath()
   for (let x = 0; x <= map.grid.w; x++) {

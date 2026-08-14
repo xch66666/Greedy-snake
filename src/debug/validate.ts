@@ -17,8 +17,8 @@ export const STYLE_RULES = {
   shadowOffset: 4,
   animDurMin: 150,
   animDurMax: 450,
-  decorTotalMin: 20,
-  decorTotalMax: 60,
+  decorTotalMin: 8,  // 用户反馈"杂乱"：装饰数量下调（docs/02 1.4 同步）
+  decorTotalMax: 40,
   parallaxLayers: 3,
 } as const
 

@@ -21,9 +21,9 @@ export const dungeonTheme: Theme = {
   radius: 4,
   texture: { base: "stone", dither: true, ao: 0.8 },
   bgDecor: [
-    { kind: "torch", count: 6, periodMin: 0.7, periodMax: 0.9 },
-    { kind: "dust", count: 18, periodMin: 10, periodMax: 16 },
-    { kind: "bat", count: 3, periodMin: 8, periodMax: 14 },
+    { kind: "torch", count: 2, periodMin: 0.7, periodMax: 0.9 },
+    { kind: "dust", count: 6, periodMin: 10, periodMax: 16 },
+    { kind: "bat", count: 1, periodMin: 8, periodMax: 14 },
   ],
   parallax: { layers: 3, depth: 5 },
   obstacleStyle: "stone",

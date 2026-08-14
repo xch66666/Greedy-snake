@@ -7,10 +7,10 @@ import { jungleMap } from "../game/maps/jungle"
 import { jungleTheme } from "../game/themes/jungle"
 
 describe("decor", () => {
-  it("装饰实例数在 20~60 范围（docs/02 1.4）", () => {
+  it("装饰实例数在 8~40 范围（docs/02 1.4，用户反馈后下调）", () => {
     const decor = generateDecor(jungleMap, jungleTheme)
-    expect(decor.length).toBeGreaterThanOrEqual(20)
-    expect(decor.length).toBeLessThanOrEqual(60)
+    expect(decor.length).toBeGreaterThanOrEqual(8)
+    expect(decor.length).toBeLessThanOrEqual(40)
   })
 
   it("确定性：同 seed 生成相同装饰", () => {

@@ -21,9 +21,9 @@ export const deepseaTheme: Theme = {
   radius: 4,
   texture: { base: "wave", dither: true, ao: 0.6 },
   bgDecor: [
-    { kind: "bubble", count: 18, periodMin: 4, periodMax: 8 },
-    { kind: "kelp", count: 8, periodMin: 3, periodMax: 5 },
-    { kind: "plankton", count: 10, periodMin: 2, periodMax: 4 },
+    { kind: "bubble", count: 6, periodMin: 4, periodMax: 8 },
+    { kind: "kelp", count: 3, periodMin: 3, periodMax: 5 },
+    { kind: "plankton", count: 3, periodMin: 2, periodMax: 4 },
   ],
   parallax: { layers: 3, depth: 4 },
   obstacleStyle: "coral",

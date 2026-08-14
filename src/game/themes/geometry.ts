@@ -21,8 +21,8 @@ export const geometryTheme: Theme = {
   radius: 4,
   texture: { base: "gradient", dither: true, ao: 0.4 },
   bgDecor: [
-    { kind: "geo", count: 10, periodMin: 4, periodMax: 8 },
-    { kind: "orbit", count: 14, periodMin: 6, periodMax: 10 },
+    { kind: "geo", count: 4, periodMin: 4, periodMax: 8 },
+    { kind: "orbit", count: 5, periodMin: 6, periodMax: 10 },
   ],
   parallax: { layers: 3, depth: 3 },
   obstacleStyle: "prism",
