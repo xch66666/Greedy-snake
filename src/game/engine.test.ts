@@ -10,7 +10,7 @@ import type { Direction, GameEvent, MapData, Theme } from "./core/types"
 const testVoidMap: MapData = {
   id: "test-void",
   name: "测试空地图",
-  grid: { w: 24, h: 18 },
+  grid: { w: 48, h: 36 },
   spawn: { x: 2, y: 2 },
   staticObstacles: [],
   entities: [],

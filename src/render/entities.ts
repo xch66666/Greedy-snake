@@ -69,6 +69,15 @@ export function drawEntity(
     case "reef": return drawReef(ctx, b.w, b.h, theme, t)
     case "wreck": return drawWreck(ctx, b.w, b.h, theme, t)
     case "anemone": return drawAnemone(ctx, b.w, b.h, theme, t)
+    // 地形（平铺，docs/12 第 3 节）
+    case "pond": return drawPond(ctx, b.w, b.h, theme, t)
+    case "brambles": return drawBrambles(ctx, b.w, b.h, theme, t)
+    case "lavacrack": return drawLava(ctx, b.w, b.h, theme, t)
+    case "rubble": return drawRubble(ctx, b.w, b.h, theme)
+    case "crystal": return drawCrystal(ctx, b.w, b.h, theme, t)
+    case "voidpit": return drawVoidpit(ctx, b.w, b.h, theme, t)
+    case "sandbank": return drawSandbank(ctx, b.w, b.h, theme)
+    case "kelpfield": return drawKelpfield(ctx, b.w, b.h, theme, t)
   }
   ctx.restore()
 }
@@ -574,4 +583,289 @@ function drawAnemone(ctx: CanvasRenderingContext2D, w: number, h: number, theme:
     ctx.fill()
     ctx.globalAlpha = 1
   }
+}
+
+// ---------- 地形（平铺，docs/12 第 3 节） ----------
+
+/** 水塘：深蓝水面 + 波光 + 岸边亮边 */
+function drawPond(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
+  const dark = theme.palette.outline
+  // 水底
+  ctx.fillStyle = "#16294a"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 5)
+  ctx.fill()
+  ctx.fillStyle = dark
+  ctx.globalAlpha = 0.4
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 5)
+  ctx.stroke()
+  ctx.globalAlpha = 1
+  // 岸边亮边（左上受光）
+  ctx.strokeStyle = "#3a6ea5"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(2, 2, w - 4, h - 4, 4)
+  ctx.stroke()
+  // 波光（sin 闪烁）
+  for (let i = 0; i < 5; i++) {
+    const x = 4 + (i / 4) * (w - 8)
+    const y = 4 + ((i * 7) % Math.max(1, h - 8))
+    const g = 0.5 + 0.5 * Math.sin(t * 2.5 + i * 1.3)
+    ctx.fillStyle = "#8fd8ff"
+    ctx.globalAlpha = 0.3 + 0.4 * g
+    ctx.fillRect(x, y, 3, 1)
+  }
+  ctx.globalAlpha = 1
+}
+
+/** 荆棘丛：深绿刺丛 + 刺点 + 浆果警告色 */
+function drawBrambles(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
+  const dark = theme.palette.outline
+  // 刺丛底
+  ctx.fillStyle = "#1d3a22"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 4)
+  ctx.fill()
+  // 刺簇
+  for (let i = 0; i < 8; i++) {
+    const x = 3 + ((i * 13) % Math.max(1, w - 8))
+    const y = 3 + ((i * 29) % Math.max(1, h - 8))
+    ctx.fillStyle = dark
+    ctx.beginPath()
+    ctx.moveTo(x, y + 3)
+    ctx.lineTo(x + 2, y - 1)
+    ctx.lineTo(x + 4, y + 3)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = "#3f6b45"
+    ctx.beginPath()
+    ctx.moveTo(x + 0.5, y + 3)
+    ctx.lineTo(x + 2, y)
+    ctx.lineTo(x + 3.5, y + 3)
+    ctx.closePath()
+    ctx.fill()
+  }
+  // 浆果（警告色）
+  const g = 0.5 + 0.5 * Math.sin(t * 3)
+  ctx.fillStyle = theme.palette.food
+  ctx.globalAlpha = 0.7 + 0.3 * g
+  ctx.beginPath()
+  ctx.arc(w * 0.3, h * 0.4, 1.6, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.globalAlpha = 1
+}
+
+/** 熔岩裂缝：黑缝 + 发光内核（脉动）+ 火星 */
+function drawLava(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
+  const dark = theme.palette.outline
+  // 裂缝底
+  ctx.fillStyle = "#1a0f0a"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 3)
+  ctx.fill()
+  // 发光内核（波浪脉动）
+  const g = 0.5 + 0.5 * Math.sin(t * 4)
+  ctx.fillStyle = "#e07b39"
+  ctx.globalAlpha = 0.4 + 0.5 * g
+  ctx.beginPath()
+  for (let x = 2; x <= w - 2; x += 3) {
+    const y = h / 2 + Math.sin(x / 5 + t * 3) * (h * 0.22)
+    if (x === 2) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.lineWidth = 3
+  ctx.stroke()
+  ctx.globalAlpha = 1
+  ctx.fillStyle = "#ffb347"
+  ctx.globalAlpha = 0.5 + 0.4 * g
+  ctx.beginPath()
+  for (let x = 3; x <= w - 3; x += 4) {
+    const y = h / 2 + Math.sin(x / 5 + t * 3) * (h * 0.22)
+    if (x === 3) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+  ctx.globalAlpha = 1
+  // 火星（上飘）
+  const mx = ((t * 6) % w)
+  ctx.fillStyle = "#ffd166"
+  ctx.globalAlpha = 0.8
+  ctx.fillRect(mx, 2, 1, 2)
+  ctx.globalAlpha = 1
+  void dark
+}
+
+/** 碎石堆：灰石块 + 深缝 + 高光 */
+function drawRubble(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme): void {
+  const dark = theme.palette.outline
+  ctx.fillStyle = "#2a241c"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 4)
+  ctx.fill()
+  // 碎石块
+  const stones = [[3, 3, 7, 6], [11, 2, 8, 5], [5, 10, 9, 7], [15, 9, 6, 6], [2, 16, 8, 5], [12, 16, 7, 5]]
+  for (const [sx, sy, sw, sh] of stones) {
+    ctx.fillStyle = dark
+    ctx.beginPath()
+    ctx.roundRect(sx + 1, sy + 1, sw, sh, 2)
+    ctx.fill()
+    ctx.fillStyle = "#4a4036"
+    ctx.beginPath()
+    ctx.roundRect(sx, sy, sw, sh, 2)
+    ctx.fill()
+    // 高光
+    ctx.fillStyle = "rgba(255,255,255,0.15)"
+    ctx.fillRect(sx + 1, sy + 1, sw - 2, 2)
+  }
+  // 骨白点缀
+  ctx.fillStyle = "#d8cfc0"
+  ctx.globalAlpha = 0.6
+  ctx.fillRect(w * 0.62, h * 0.35, 2, 2)
+  ctx.fillRect(w * 0.3, h * 0.7, 2, 2)
+  ctx.globalAlpha = 1
+}
+
+/** 水晶簇：基岩 + 多根晶柱 + 棱线高光 + 微光 */
+function drawCrystal(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
+  const dark = theme.palette.outline
+  // 基岩
+  ctx.fillStyle = "#24283a"
+  ctx.beginPath()
+  ctx.roundRect(1, h * 0.6, w - 2, h * 0.4, 3)
+  ctx.fill()
+  // 晶柱（青/品红/蓝）：[x比例, 高度比例, 半宽, 颜色]
+  const crystals: [number, number, number, string][] = [
+    [w * 0.2, 0.55, 5, "#29c4c4"],
+    [w * 0.42, 0.4, 7, "#e86aff"],
+    [w * 0.66, 0.5, 6, "#4da6ff"],
+    [w * 0.85, 0.65, 4, "#29c4c4"],
+  ]
+  const g = 0.5 + 0.5 * Math.sin(t * 2)
+  for (const [cx, ch, cw, col] of crystals) {
+    const hh = h * ch
+    ctx.fillStyle = dark
+    ctx.beginPath()
+    ctx.moveTo(cx - cw / 2 - 1, h * 0.6)
+    ctx.lineTo(cx, h * 0.6 - hh - 1)
+    ctx.lineTo(cx + cw / 2 + 1, h * 0.6)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = col
+    ctx.beginPath()
+    ctx.moveTo(cx - cw / 2, h * 0.6)
+    ctx.lineTo(cx, h * 0.6 - hh)
+    ctx.lineTo(cx + cw / 2, h * 0.6)
+    ctx.closePath()
+    ctx.fill()
+    // 棱线高光
+    ctx.fillStyle = "rgba(255,255,255,0.35)"
+    ctx.beginPath()
+    ctx.moveTo(cx - cw * 0.18, h * 0.6)
+    ctx.lineTo(cx - cw * 0.05, h * 0.6 - hh * 0.9)
+    ctx.lineTo(cx + cw * 0.1, h * 0.6)
+    ctx.closePath()
+    ctx.fill()
+    // 顶部光点
+    ctx.fillStyle = "#ffffff"
+    ctx.globalAlpha = 0.4 + 0.5 * g
+    ctx.fillRect(cx - 1, h * 0.6 - hh - 2, 2, 2)
+    ctx.globalAlpha = 1
+  }
+}
+
+/** 虚空坑：黑洞 + 边缘亮线 + 旋纹（环形中空形状由 shape 决定） */
+function drawVoidpit(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
+  const dark = theme.palette.outline
+  // 洞底
+  ctx.fillStyle = "#05060d"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 4)
+  ctx.fill()
+  // 边缘亮线（青）
+  ctx.strokeStyle = theme.palette.accent
+  ctx.globalAlpha = 0.6
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(2, 2, w - 4, h - 4, 3)
+  ctx.stroke()
+  ctx.globalAlpha = 1
+  // 内旋光纹
+  for (let i = 0; i < 3; i++) {
+    const ang = t * 1.5 + (i * Math.PI * 2) / 3
+    const r = Math.min(w, h) * 0.28
+    const x = w / 2 + Math.cos(ang) * r * 0.5
+    const y = h / 2 + Math.sin(ang) * r * 0.5
+    ctx.fillStyle = "#4da6ff"
+    ctx.globalAlpha = 0.3 + 0.3 * Math.sin(t * 3 + i)
+    ctx.beginPath()
+    ctx.arc(x, y, 1.4, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+  // 边缘碎块
+  ctx.fillStyle = dark
+  ctx.fillRect(3, h / 2, 3, 2)
+  ctx.fillRect(w - 6, h * 0.3, 3, 2)
+}
+
+/** 沙洲：沙底 + 斑点 + 湿边 + 贝壳 */
+function drawSandbank(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme): void {
+  const dark = theme.palette.outline
+  ctx.fillStyle = "#8a7a4a"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 4)
+  ctx.fill()
+  // 斑点纹理
+  for (let i = 0; i < 12; i++) {
+    const x = 3 + ((i * 17) % Math.max(1, w - 6))
+    const y = 3 + ((i * 31) % Math.max(1, h - 6))
+    ctx.fillStyle = i % 2 ? "#a08a55" : "#7a6a40"
+    ctx.fillRect(x, y, 2, 2)
+  }
+  // 湿沙暗边（右下）
+  ctx.fillStyle = "rgba(0,0,0,0.2)"
+  ctx.fillRect(1, h - 3, w - 2, 2)
+  ctx.fillRect(w - 3, 1, 2, h - 2)
+  // 贝壳点
+  ctx.fillStyle = "#e8dcc0"
+  ctx.beginPath()
+  ctx.arc(w * 0.3, h * 0.35, 1.4, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(w * 0.7, h * 0.65, 1.2, 0, Math.PI * 2)
+  ctx.fill()
+  void dark
+}
+
+/** 海藻林：暗绿海藻丛 + 顶部摇曳 + 气泡 */
+function drawKelpfield(ctx: CanvasRenderingContext2D, w: number, h: number, theme: Theme, t: number): void {
+  const dark = theme.palette.outline
+  ctx.fillStyle = "#123524"
+  ctx.beginPath()
+  ctx.roundRect(1, 1, w - 2, h - 2, 4)
+  ctx.fill()
+  // 海藻条（摇摆）
+  for (let i = 0; i < 6; i++) {
+    const x = 3 + (i / 5) * (w - 6)
+    const sway = Math.sin(t * 2 + i * 0.9) * 3
+    ctx.strokeStyle = i % 2 ? "#1e5c38" : "#2a7a48"
+    ctx.lineWidth = 2.5
+    ctx.beginPath()
+    ctx.moveTo(x, h - 1)
+    ctx.quadraticCurveTo(x + sway * 0.5, h * 0.55, x + sway, h * 0.2)
+    ctx.stroke()
+  }
+  // 气泡
+  for (let i = 0; i < 3; i++) {
+    const p = (t * 0.3 + i / 3) % 1
+    ctx.strokeStyle = "#8fd8ff"
+    ctx.globalAlpha = 0.6
+    ctx.beginPath()
+    ctx.arc(w * (0.25 + 0.5 * (i / 2)), h * (1 - p * 0.8), 1.2, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+  void dark
 }

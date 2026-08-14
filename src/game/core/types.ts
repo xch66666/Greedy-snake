@@ -37,8 +37,9 @@ export interface DynamicObstacle {
   target?: Cell
 }
 
-/** 复合障碍物形态（docs/09：多格整体障碍，2~3 种/图） */
+/** 复合障碍物形态（docs/12：实体障碍 + 地形，多格任意形状，2~3 种/图） */
 export type ObstacleKind =
+  // 实体障碍（立体，block）
   | "tree"        // 大树 2×2（丛林）
   | "boulder"     // 巨石 2×1（丛林）
   | "vinewall"    // 藤蔓墙 3×1（丛林）
@@ -51,6 +52,15 @@ export type ObstacleKind =
   | "reef"        // 珊瑚礁 2×2（深海）
   | "wreck"       // 沉船残骸 3×2（深海）
   | "anemone"     // 海葵丛 2×1（深海）
+  // 地形（平铺，terrain，docs/12 第 3 节）
+  | "pond"        // 水塘 2×2（丛林）
+  | "brambles"    // 荆棘丛 L形（丛林）
+  | "lavacrack"   // 熔岩裂缝 3×1（地牢）
+  | "rubble"      // 碎石堆 L形（地牢）
+  | "crystal"     // 水晶簇 不规则（几何）
+  | "voidpit"     // 虚空坑 环形中空（几何）
+  | "sandbank"    // 沙洲 不规则（深海）
+  | "kelpfield"   // 海藻林 L形（深海）
 
 /** 复合障碍物实体：由多个格子组成一个整体（docs/09 网格升级需求） */
 export interface ObstacleEntity {

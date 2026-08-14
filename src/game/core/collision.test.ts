@@ -16,26 +16,29 @@ describe("collision", () => {
   })
 
   it("hitsStatic：命中静态障碍与复合实体", () => {
-    // 丛林地图：静态单格 (12,16) + 复合实体树 tree-0 (4,13) + 藤蔓墙 vinewall-0 (2,8)
-    expect(hitsStatic(jungleMap, { x: 12, y: 16 })).toBe(true)
-    expect(hitsStatic(jungleMap, { x: 4, y: 13 })).toBe(true) // 树冠格
-    expect(hitsStatic(jungleMap, { x: 5, y: 13 })).toBe(true) // 树冠格
-    expect(hitsStatic(jungleMap, { x: 2, y: 8 })).toBe(true) // 藤蔓墙
+    // 从地图数据动态取坐标（避免布局更新后测试过期）
+    const tree = jungleMap.entities.find((e) => e.kind === "tree")!
+    const treeCell = { x: tree.origin.x + tree.shape[0].x, y: tree.origin.y + tree.shape[0].y }
+    const wall = jungleMap.entities.find((e) => e.kind === "vinewall")!
+    const wallCell = { x: wall.origin.x + wall.shape[0].x, y: wall.origin.y + wall.shape[0].y }
+    expect(hitsStatic(jungleMap, treeCell)).toBe(true)
+    expect(hitsStatic(jungleMap, wallCell)).toBe(true)
     expect(hitsStatic(jungleMap, { x: 13, y: 16 })).toBe(false)
-    expect(hitsStatic(jungleMap, { x: 4, y: 12 })).toBe(false)
   })
 
   it("hitsDynamic：命中动态障碍占格", () => {
-    const active = new Set(["5,7"]) // 丛林动态障碍 (5,7) pulse
-    expect(hitsDynamic(active, { x: 5, y: 7 })).toBe(true)
-    expect(hitsDynamic(active, { x: 4, y: 7 })).toBe(false)
+    const active = new Set(["6,10"]) // 丛林动态障碍 (6,10) pulse
+    expect(hitsDynamic(active, { x: 6, y: 10 })).toBe(true)
+    expect(hitsDynamic(active, { x: 5, y: 10 })).toBe(false)
   })
 
   it("hitsAny：综合判定（墙/静态/动态）", () => {
-    const active = new Set(["5,7"])
+    const active = new Set(["6,10"])
+    const tree = jungleMap.entities.find((e) => e.kind === "tree")!
+    const treeCell = { x: tree.origin.x, y: tree.origin.y }
     expect(hitsAny(jungleMap, active, { x: -1, y: 5 })).toBe(true) // 墙
-    expect(hitsAny(jungleMap, active, { x: 12, y: 16 })).toBe(true) // 静态
-    expect(hitsAny(jungleMap, active, { x: 5, y: 7 })).toBe(true) // 动态
-    expect(hitsAny(jungleMap, active, { x: 12, y: 8 })).toBe(false) // 空
+    expect(hitsAny(jungleMap, active, treeCell)).toBe(true) // 实体
+    expect(hitsAny(jungleMap, active, { x: 6, y: 10 })).toBe(true) // 动态
+    expect(hitsAny(jungleMap, active, { x: 30, y: 20 })).toBe(false) // 空
   })
 })

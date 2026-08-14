@@ -3,8 +3,8 @@
 // 每帧：静态层 → 动态障碍 → 食物 → 蛇（插值）→ 装饰 → 粒子 → 边缘光
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
-import type { Cell, Direction, MapData, SnakeState, Theme } from "../game/core/types"
-import { CELL, fitScale } from "./camera"
+import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
+import { CELL, VIEW_PX_H, VIEW_PX_W, clampCam, fitScale } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
 import { drawAo, drawObstacleShape, renderStaticLayer } from "./staticLayer"
@@ -36,26 +36,24 @@ export class Renderer {
   private view: EngineView | null = null
   private shake = 0 // 死亡震动
   showGrid = false // 调试网格叠加（F1，docs/06 1.1）
-  private container = { w: 0, h: 0 }
+  // 相机（docs/11：大地图滚动视野，平滑跟随）
+  private camX = 0
+  private camY = 0
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
     this.ctx = canvas.getContext("2d")!
   }
 
-  /** 画布尺寸适配（内部低分辨率，由外部容器决定整数倍） */
+  /** 画布尺寸适配（固定视野 24×18 格，docs/11） */
   fit(containerW: number, containerH: number): { scale: number; w: number; h: number } {
-    this.container = { w: containerW, h: containerH }
-    const map = this.view?.map
-    const iw = map ? map.grid.w * CELL : 256
-    const ih = map ? map.grid.h * CELL : 192
-    const scale = fitScale(containerW, containerH, iw, ih)
-    this.canvas.width = iw
-    this.canvas.height = ih
-    this.canvas.style.width = `${iw * scale}px`
-    this.canvas.style.height = `${ih * scale}px`
+    const scale = fitScale(containerW, containerH, VIEW_PX_W, VIEW_PX_H)
+    this.canvas.width = VIEW_PX_W
+    this.canvas.height = VIEW_PX_H
+    this.canvas.style.width = `${VIEW_PX_W * scale}px`
+    this.canvas.style.height = `${VIEW_PX_H * scale}px`
     this.canvas.style.imageRendering = "pixelated"
-    return { scale, w: iw, h: ih }
+    return { scale, w: VIEW_PX_W, h: VIEW_PX_H }
   }
 
   /** 每帧渲染 */
@@ -66,12 +64,7 @@ export class Renderer {
     const ctx = this.ctx
     if (!map || !theme) return
 
-    // 地图变化时画布尺寸自动适配（16×12 均为 256×192，防未来地图尺寸不同）
-    if (this.canvas.width !== map.grid.w * CELL) {
-      this.fit(this.container.w, this.container.h)
-    }
-
-    // 地图变化时重建静态层与装饰
+    // 地图变化时重建静态层与装饰（视野画布固定，不再随地图变）
     const key = `${map.id}-${map.decorSeed}`
     if (key !== this.lastMapKey) {
       this.lastMapKey = key
@@ -79,11 +72,40 @@ export class Renderer {
       this.decor = generateDecor(map, theme)
       this.snakeAnims.clear()
       this.particles.clear()
+      // 相机回到出生点中心
+      this.camX = Math.max(0, map.spawn.x * CELL - VIEW_PX_W / 2)
+      this.camY = Math.max(0, map.spawn.y * CELL - VIEW_PX_H / 2)
     }
 
     const t = view.elapsed
+
+    // ---- 相机平滑跟随（solo=蛇头，coop=两蛇中点；docs/11）----
+    const mapPxW = map.grid.w * CELL
+    const mapPxH = map.grid.h * CELL
+    const follow = (): { x: number; y: number } => {
+      const snakes = view.snakes
+      if (snakes.length === 0) return { x: VIEW_PX_W / 2, y: VIEW_PX_H / 2 }
+      let tx = 0
+      let ty = 0
+      for (const s of snakes) {
+        const h = s.body[0]
+        tx += (h.x * CELL + CELL / 2)
+        ty += (h.y * CELL + CELL / 2)
+      }
+      tx /= snakes.length
+      ty /= snakes.length
+      return { x: tx - VIEW_PX_W / 2, y: ty - VIEW_PX_H / 2 }
+    }
+    const target = follow()
+    const cam = clampCam(target.x, target.y, mapPxW, mapPxH)
+    this.camX += (cam.x - this.camX) * Math.min(1, dt * 6)
+    this.camY += (cam.y - this.camY) * Math.min(1, dt * 6)
+
     ctx.save()
     ctx.imageSmoothingEnabled = false
+    ctx.translate(-Math.round(this.camX), -Math.round(this.camY))
+
+    // 静态层（全图，GPU 裁切视野）
     ctx.drawImage(this.staticLayer!, 0, 0)
 
     // 震动（docs/02 3.3 死亡反馈）
@@ -120,10 +142,7 @@ export class Renderer {
     this.particles.update(dt)
     this.particles.draw(ctx)
 
-    // ---- 主题边缘光 vignette（docs/02 3.3）----
-    this.drawVignette(ctx, theme, map)
-
-    // ---- 调试网格叠加（F1）----
+    // ---- 调试网格叠加（F1，全图坐标，视野裁剪）----
     if (this.showGrid && view.map) {
       ctx.strokeStyle = "rgba(255,255,255,0.25)"
       ctx.lineWidth = 1
@@ -140,6 +159,9 @@ export class Renderer {
     }
 
     ctx.restore()
+
+    // ---- 主题边缘光 vignette（屏幕空间，视野尺寸，docs/02 3.3）----
+    this.drawVignette(ctx, theme)
   }
 
   // ---------- 事件特效（由桥接层订阅 engine 事件调用） ----------
@@ -497,10 +519,9 @@ export class Renderer {
   private drawVignette(
     ctx: CanvasRenderingContext2D,
     theme: Theme,
-    map: MapData,
   ): void {
-    const w = map.grid.w * CELL
-    const h = map.grid.h * CELL
+    const w = VIEW_PX_W
+    const h = VIEW_PX_H
     const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75)
     g.addColorStop(0, "rgba(0,0,0,0)")
     g.addColorStop(1, "rgba(0,0,0,0.35)")
