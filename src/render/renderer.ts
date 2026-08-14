@@ -4,7 +4,7 @@
 // 纯绘制，不依赖 React；状态经 EngineView 传入
 // ============================================================
 import type { Cell, Direction, SnakeState, Theme } from "../game/core/types"
-import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, fitScale, type ViewSize } from "./camera"
+import { CELL, VIEW_PX_H, VIEW_PX_W, VIEW_H, VIEW_W, calcCoopView, clampCam, coverScale, type ViewSize } from "./camera"
 import { DIFFICULTY_PRESETS } from "../game/core/constants"
 import { obstacleCell } from "../game/core/obstacles"
 import { drawAo, drawObstacleShape, renderStaticLayer } from "./staticLayer"
@@ -54,11 +54,11 @@ export class Renderer {
     this.ctx = canvas.getContext("2d")!
   }
 
-  /** 画布尺寸适配（固定视野 24×18 格，docs/11；动态缩放时每帧自适应） */
+  /** 画布尺寸适配（覆盖式满屏，docs/13：全屏铺满） */
   fit(containerW: number, containerH: number): { scale: number; w: number; h: number } {
     this.lastContainerW = containerW
     this.lastContainerH = containerH
-    const scale = fitScale(containerW, containerH, VIEW_PX_W, VIEW_PX_H)
+    const scale = coverScale(containerW, containerH, VIEW_PX_W, VIEW_PX_H)
     this.canvas.width = VIEW_PX_W
     this.canvas.height = VIEW_PX_H
     this.canvas.style.width = `${VIEW_PX_W * scale}px`
@@ -107,7 +107,7 @@ export class Renderer {
     const pxW = this.viewW * CELL
     const pxH = this.viewH * CELL
     if (this.canvas.width !== pxW || this.canvas.height !== pxH) {
-      const scale = fitScale(this.lastContainerW, this.lastContainerH, pxW, pxH)
+      const scale = coverScale(this.lastContainerW, this.lastContainerH, pxW, pxH)
       this.canvas.width = pxW
       this.canvas.height = pxH
       this.canvas.style.width = `${pxW * scale}px`

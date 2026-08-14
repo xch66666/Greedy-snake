@@ -63,14 +63,14 @@ export function App(): React.JSX.Element | null {
     if (screen === "playing" || screen === "gameover") {
       return (
         <div className="game-layout">
-          <HUD />
-          <div style={{ position: "relative", minHeight: 0 }}>
+          <div className="game-canvas-wrap">
             <GameCanvas />
             <ReviveBanner />
             <div className="game-hint">
               P1: WASD · P2: 方向键 · P/Esc: 暂停 · R: 重开 · M: 静音
             </div>
           </div>
+          <HUD />
           <PauseOverlay />
           <GameOverOverlay />
         </div>

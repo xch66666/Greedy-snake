@@ -5,9 +5,9 @@
 
 export const CELL = 16 // 格子像素（内部低分辨率；16px 与星露谷 tile 同规格，细节容量最大）
 
-/** 视野尺寸（格）——默认 40×22 宽屏矩形（docs/13：scale2 占满屏幕，窗口恒定） */
+/** 视野尺寸（格）——默认 40×23 宽屏矩形（docs/13：2560×1440 下 scale4 满屏裁剪） */
 export const VIEW_W = 40
-export const VIEW_H = 22
+export const VIEW_H = 23
 export const VIEW_PX_W = VIEW_W * CELL
 export const VIEW_PX_H = VIEW_H * CELL
 
@@ -21,6 +21,30 @@ export function fitScale(
   if (containerW <= 0 || containerH <= 0) return 1
   const s = Math.floor(Math.min(containerW / internalW, containerH / internalH))
   return Math.max(1, s)
+}
+
+/**
+ * 覆盖式满屏缩放（docs/13 全屏铺满）：
+ * 优先取"铺满容器的最小整数倍"（超出部分 ≤15% 时裁剪铺满）；
+ * 超出过多则退回最大不超整数倍（居中留边）。
+ * 2560×1440：视口 40×23 → scale 4 → 2560×1472，裁 32px 满屏锐利。
+ */
+export function coverScale(
+  containerW: number,
+  containerH: number,
+  internalW: number,
+  internalH: number,
+): number {
+  if (containerW <= 0 || containerH <= 0) return 1
+  const fit = Math.min(containerW / internalW, containerH / internalH)
+  const floor = Math.max(1, Math.floor(fit))
+  const ceil = Math.max(1, Math.ceil(fit))
+  if (ceil > floor) {
+    const overW = (internalW * ceil - containerW) / containerW
+    const overH = (internalH * ceil - containerH) / containerH
+    if (overW <= 0.15 && overH <= 0.15) return ceil
+  }
+  return floor
 }
 
 /** 画布内容居中偏移（整数像素，避免抖动） */

@@ -246,7 +246,7 @@ export function GameCanvas(): React.JSX.Element {
   void settings
 
   return (
-    <div className="game-canvas-wrap" ref={wrapRef} style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div className="game-canvas-wrap" ref={wrapRef}>
       <canvas ref={canvasRef} />
     </div>
   )
