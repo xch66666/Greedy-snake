@@ -8,6 +8,7 @@ import { ErrorBoundary } from "./ui/ErrorBoundary"
 import { useGame } from "./ui/store"
 import { loadGameAssets } from "./boot/loadingManager"
 import { applyThemeVars, setBodyBg } from "./ui/GameCanvas"
+import "./ui/fonts.css"
 import "./ui/theme.css"
 
 function Boot(): React.JSX.Element {
